@@ -51,11 +51,11 @@ out/
 # Environment variables
 .env
 .env.*
-!.env.example
 
 # BMad - AI workflow framework
 _bmad/
 _bmad-output/
+BMAD-COWORK-사용법.md
 
 # Claude Code
 .claude/
