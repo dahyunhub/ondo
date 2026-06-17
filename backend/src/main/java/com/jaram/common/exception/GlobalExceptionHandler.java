@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -43,6 +44,16 @@ public class GlobalExceptionHandler {
         ErrorCode code = ErrorCode.VALIDATION_FAILED;
         ApiError body = ApiError.of(code.getStatus().value(), code.name(), code.getDefaultMessage(),
                 request.getRequestURI(), details);
+        return ResponseEntity.status(code.getStatus()).body(body);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleUnreadable(HttpMessageNotReadableException ex,
+                                                     HttpServletRequest request) {
+        // 잘못된 JSON·enum 값 등 본문 파싱 실패 → 500 대신 400
+        ErrorCode code = ErrorCode.VALIDATION_FAILED;
+        ApiError body = ApiError.of(code.getStatus().value(), code.name(), code.getDefaultMessage(),
+                request.getRequestURI());
         return ResponseEntity.status(code.getStatus()).body(body);
     }
 

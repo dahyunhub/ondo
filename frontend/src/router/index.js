@@ -6,13 +6,17 @@ import LoginView from '../views/LoginView.vue'
 import ClassroomsView from '../views/ClassroomsView.vue'
 import HomeView from '../views/HomeView.vue'
 import ChildrenView from '../views/ChildrenView.vue'
+import TimelineView from '../views/TimelineView.vue'
+import MemoView from '../views/MemoView.vue'
 import PlaceholderView from '../views/PlaceholderView.vue'
 
 const routes = [
   { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
   { path: '/classrooms', name: 'classrooms', component: ClassroomsView },
   { path: '/', name: 'home', component: HomeView, meta: { needsClassroom: true } },
+  { path: '/memo', name: 'memo', component: MemoView, meta: { needsClassroom: true } },
   { path: '/children', name: 'children', component: ChildrenView, meta: { needsClassroom: true } },
+  { path: '/children/:childId', name: 'timeline', component: TimelineView, meta: { needsClassroom: true } },
   {
     path: '/journal', name: 'journal', component: PlaceholderView,
     meta: { needsClassroom: true, title: '일지·분석', note: 'AI 보육일지/개인평가 (Epic 3·4 예정)' },

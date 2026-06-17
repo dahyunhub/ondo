@@ -31,7 +31,9 @@ scope: 백엔드(Spring Boot)만. 프론트(Vue + Vite)는 Claude Design 으로 
 - ✅ **Story 1.4** 아이 등록·관리: Child 엔티티(`@SQLRestriction` soft delete, token_alias 자동부여 아이A/B…), CRUD 4종(`GET/POST /classrooms/{id}/children`, `PUT/DELETE /children/{id}`), 가나다순, 반/아이 소유권(타 교사 → 404). 통합테스트 9개 — 완료(2026-06-16). 총 19개(코드리뷰 후 21개) 테스트 통과.
 - ✅ **Story 1.5** 워킹 스켈레톤 배포: `backend/Dockerfile`(멀티스테이지, Java 25), `docker-compose.yml`(app+mysql, 헬스체크, env 시크릿), `.dockerignore`, 루트 `.env.example`. `docker compose up -d` 로 검증 — Flyway V1 적용·`/actuator/health` UP·로그인 동작 확인. → **Epic 1 완료.** 다음 = Epic 2(메모) 또는 Epic 5(prod 강화 배포).
 - ✅ **디자인 정합(성별)**: 클로드 디자인 목업 대조 → 유일 갭이던 **성별**을 백엔드에 반영. Flyway `V2__add_child_gender.sql`, `Gender`(MALE/FEMALE) enum, Child/DTO/검증·테스트. 정합 가이드 `docs/specs/design-api-alignment.md` 작성 — 완료(2026-06-16). 총 23개 테스트 통과.
-- 프론트 골격(Vue+Vite)은 별도 진행 — 손대지 않음.
+- ✅ **프론트 Epic 1 연동**: Vue+Vite(로그인·반선택·아이 CRUD), api 클라이언트(JWT/401)·router 가드·tokens.css — 완료(2026-06-18, 커밋 92ec312). dev 시드 반·아이 추가.
+- ✅ **Epic 2 메모·타임라인** (Story 2.1~2.3): `Memo` 엔티티(CurriculumArea enum, soft delete), `POST /memos`(MEMO_EMPTY 불변식·소유권), `DELETE /memos/{id}`, `GET /children/{id}/timeline`(area 필터·UNCLASSIFIED·최신순), `PATCH /memos/{id}/curriculum-area`. HttpMessageNotReadable→400 매핑 추가. 통합테스트 10개 — 완료(2026-06-18). 총 33개 테스트 통과. → **Epic 2 백엔드 완료. 다음 = 메모/타임라인 프론트 연동 또는 Epic 3(AI 일지).**
+- 프론트 메모/타임라인 화면 연동은 다음 단계.
 
 > 배포 노트: 호스트 포트는 `APP_PORT`(기본 8080)로 오버라이드 가능. 워킹 스켈레톤은 `SPRING_PROFILES_ACTIVE=dev`(시드 교사 → 로그인 데모). 운영 prod 프로파일·시크릿·deploy.sh 는 Epic 5(Story 5.1/5.2).
 

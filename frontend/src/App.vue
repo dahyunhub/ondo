@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import BottomTab from './components/BottomTab.vue'
 
 const route = useRoute()
-const TAB_ROUTES = ['home', 'children', 'journal', 'me']
+const TAB_ROUTES = ['home', 'children', 'journal', 'me', 'timeline']
 const showTab = computed(() => TAB_ROUTES.includes(route.name))
 </script>
 
