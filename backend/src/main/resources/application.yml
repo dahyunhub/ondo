@@ -1,3 +1,7 @@
+server:
+  # 로컬·컨테이너 공통 listen 포트(8080 → 8090, 다른 프로젝트와 충돌 회피)
+  port: ${SERVER_PORT:8090}
+
 spring:
   application:
     name: jaram

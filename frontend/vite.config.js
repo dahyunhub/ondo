@@ -5,11 +5,11 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   plugins: [vue()],
   server: {
-    port: 5173,
+    port: 5273,
     proxy: {
-      // 개발 중 프론트(5173) → 백엔드(8080) API 프록시
+      // 개발 중 프론트(5273) → 백엔드(8090) API 프록시
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:8090',
         changeOrigin: true,
       },
     },

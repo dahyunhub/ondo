@@ -21,5 +21,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
 RUN useradd --system --uid 1001 appuser
 COPY --from=build --chown=appuser:root /app/build/libs/*.jar app.jar
 USER appuser
-EXPOSE 8080
+EXPOSE 8090
 ENTRYPOINT ["java", "-jar", "app.jar"]

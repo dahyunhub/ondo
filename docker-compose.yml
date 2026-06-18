@@ -30,9 +30,9 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-jaram}
       JWT_SECRET: ${JWT_SECRET:-dev-only-secret-please-change-me-0123456789abcdef}
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "${APP_PORT:-8090}:8090"
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:8090/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 20

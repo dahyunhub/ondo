@@ -47,10 +47,10 @@ cp .env.example .env          # 환경변수 채우기
 ```bash
 cp .env.example .env          # 시크릿 채우기 (.env 는 커밋 금지)
 docker compose up -d --build  # app + mysql 기동, Flyway 자동 적용
-curl localhost:8080/actuator/health   # {"status":"UP"}
+curl localhost:8090/actuator/health   # {"status":"UP"}
 ```
 
-- 호스트 포트 충돌 시 `APP_PORT=8081 docker compose up -d` 로 변경 가능.
+- 호스트 포트 충돌 시 `APP_PORT=8091 docker compose up -d` 로 변경 가능.
 - dev 프로파일은 시드 교사(`teacher@jaram.dev` / `password1234`)를 생성해 로그인을 바로 시험할 수 있다.
 
 ### 프론트엔드
@@ -58,7 +58,7 @@ curl localhost:8080/actuator/health   # {"status":"UP"}
 ```bash
 cd frontend
 npm install
-npm run dev                   # http://localhost:5173 (→ /api 는 :8080 으로 프록시)
+npm run dev                   # http://localhost:5273 (→ /api 는 :8090 으로 프록시)
 npm run build                 # 프로덕션 빌드
 ```
 
