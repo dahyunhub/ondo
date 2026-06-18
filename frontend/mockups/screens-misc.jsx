@@ -16,18 +16,17 @@ function ClassCard({ name, count, year, tag, on, wide }) {
         <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 3, fontWeight: 600, whiteSpace: 'nowrap' }}>{year} · 원아 {count}명</div>
       </div>
       {on && <Icon name="check" size={22} stroke={2.6} style={{ color: 'var(--brand-700)', flex: '0 0 auto' }} />}
-    </div>
-  );
+    </div>);
+
 }
 
 function LoginMobile() {
   return (
     <PhoneFrame>
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '20px 24px 28px' }}>
-        <div style={{ textAlign: 'center', paddingTop: 30, paddingBottom: 26 }}>
-          <Logo size={64} />
-          <div className="jr-logo" style={{ fontSize: 38, marginTop: 14 }}>자람</div>
-          <div className="jr-body" style={{ color: 'var(--text-sub)', marginTop: 6 }}>오늘도 우리 반, 함께해요 ☀️</div>
+        <div style={{ textAlign: 'center', paddingTop: 30, paddingBottom: 26, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <LogoVertical height={150} />
+          <div className="jr-body" style={{ color: 'var(--text-sub)', marginTop: 16 }}>오늘도 우리 함께해요 ☀️</div>
         </div>
         <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-sub)', marginBottom: 14 }}>담당 반을 선택해 주세요</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
@@ -35,8 +34,8 @@ function LoginMobile() {
         </div>
         <button className="jr-btn jr-btn--primary jr-btn--block jr-btn--lg" style={{ marginTop: 18 }}>햇살반으로 시작하기 <Icon name="chevR" size={20} /></button>
       </div>
-    </PhoneFrame>
-  );
+    </PhoneFrame>);
+
 }
 
 function LoginDesktop() {
@@ -44,11 +43,10 @@ function LoginDesktop() {
     <DesktopWindow url="app.jaram.kr/login" height={620}>
       <div style={{ display: 'flex', height: '100%' }}>
         {/* 좌: 브랜드 */}
-        <div style={{ flex: '0 0 46%', background: 'linear-gradient(160deg, #FFE08A, #FFD45E)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 40 }}>
-          <Logo size={84} />
-          <div className="jr-logo" style={{ fontSize: 52, marginTop: 18, color: 'var(--text)' }}>자람</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#7a5e22', marginTop: 10 }}>오늘도 우리 반, 함께해요 ☀️</div>
-          <div style={{ fontSize: 14, color: '#8a6c2c', marginTop: 24, lineHeight: 1.6, maxWidth: 300 }}>짧은 메모만 남기면 AI가 일지를 만들고,<br/>기록은 아이별로 차곡차곡 쌓여요.</div>
+        <div style={{ flex: '0 0 46%', background: 'linear-gradient(165deg, #FFF6DC, #FFFBF2)', borderRight: '1px solid var(--hair)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 40 }}>
+          <LogoVertical height={190} />
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#7a5e22', marginTop: 18 }}>오늘도 우리 함께해요 ☀️</div>
+          <div style={{ fontSize: 14, color: '#8a6c2c', marginTop: 24, lineHeight: 1.6, maxWidth: 300 }}>짧은 메모만 남기면 AI가 일지를 만들고,<br />기록은 아이별로 차곡차곡 쌓여요.</div>
         </div>
         {/* 우: 반 선택 */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 56px' }}>
@@ -60,8 +58,8 @@ function LoginDesktop() {
           <button className="jr-btn jr-btn--primary jr-btn--lg" style={{ marginTop: 26, alignSelf: 'flex-start', paddingLeft: 32, paddingRight: 32 }}>햇살반으로 시작하기 <Icon name="chevR" size={20} /></button>
         </div>
       </div>
-    </DesktopWindow>
-  );
+    </DesktopWindow>);
+
 }
 
 // ---------- 홈 ----------
@@ -72,18 +70,18 @@ function JournalCta({ wide }) {
       <span style={{ width: wide ? 56 : 48, height: wide ? 56 : 48, borderRadius: 16, flex: '0 0 auto', background: 'rgba(255,255,255,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}><Icon name="sparkle" size={wide ? 30 : 26} /></span>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: wide ? 19 : 17, fontWeight: 800, color: 'var(--text)' }}>AI 일지 쓰기</div>
-        <div style={{ fontSize: 13.5, color: '#7a5e22', fontWeight: 600, marginTop: 2 }}>오늘 메모 4개로 하루 보육일지를 만들어요</div>
+        <div style={{ fontSize: 13.5, color: '#7a5e22', fontWeight: 600, marginTop: 2 }}>오늘 메모 4개로
+하루 일지를 만들어요</div>
       </div>
       <Icon name="chevR" size={24} style={{ color: 'var(--text)' }} />
-    </div>
-  );
+    </div>);
 }
 
 function MemoFeed({ compact }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {M().todayMemos.map((m, i) => (
-        <div key={i} className="jr-card" style={{ padding: '14px 16px' }}>
+      {M().todayMemos.map((m, i) =>
+      <div key={i} className="jr-card" style={{ padding: '14px 16px' }}>
           <div className="jr-memo">
             <Avatar name={m.name} />
             <div className="body">
@@ -92,9 +90,9 @@ function MemoFeed({ compact }) {
             </div>
           </div>
         </div>
-      ))}
-    </div>
-  );
+      )}
+    </div>);
+
 }
 
 function HomeMobile() {
@@ -103,7 +101,7 @@ function HomeMobile() {
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <MobileHeader cls={M().cls} date={M().date} right={<Avatar name={M().teacher} size="sm" />} />
         <div style={{ flex: 1, overflow: 'hidden', padding: '0 20px' }}>
-          <div className="jr-h1" style={{ marginBottom: 4 }}>민서 선생님,<br/>좋은 하루예요 ☀️</div>
+          <div className="jr-h1" style={{ marginBottom: 4 }}>민서 선생님,<br />좋은 하루예요 ☀️</div>
           <div style={{ fontSize: 14, color: 'var(--text-sub)', marginBottom: 20 }}>오늘 <b style={{ color: 'var(--text)' }}>4개</b>의 메모를 남겼어요.</div>
           <div style={{ marginBottom: 24 }}><JournalCta /></div>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
@@ -115,8 +113,8 @@ function HomeMobile() {
         <Fab />
         <BottomTab active="home" />
       </div>
-    </PhoneFrame>
-  );
+    </PhoneFrame>);
+
 }
 
 function HomeDesktop() {
@@ -145,20 +143,20 @@ function HomeDesktop() {
               <div className="jr-card" style={{ marginTop: 18 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>이번 주 기록</div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 70 }}>
-                  {[5, 8, 4, 9, 4, 0, 0].map((v, i) => (
-                    <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+                  {[5, 8, 4, 9, 4, 0, 0].map((v, i) =>
+                  <div key={i} style={{ flex: 1, textAlign: 'center' }}>
                       <div style={{ height: v * 6 + 2, background: i === 4 ? 'var(--brand-500)' : 'var(--brand-300)', borderRadius: 6 }} />
                       <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 5 }}>{'월화수목금토일'[i]}</div>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </DesktopWindow>
-  );
+    </DesktopWindow>);
+
 }
 
 // ---------- 아이 목록 ----------
@@ -168,8 +166,8 @@ function KidCard({ name, memos }) {
       <Avatar name={name} size="lg" />
       <div style={{ fontSize: 15, fontWeight: 800, whiteSpace: 'nowrap' }}>{name}</div>
       <span className="jr-chip" style={{ background: 'var(--surface-soft)', color: 'var(--text-sub)', fontSize: 11.5 }}><Icon name="journal" size={12} /> 기록 {memos}</span>
-    </div>
-  );
+    </div>);
+
 }
 
 // 아이 등록하기 카드 (점선 + 플러스)
@@ -180,8 +178,8 @@ function AddKidCard() {
       <span style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-700)', boxShadow: 'var(--shadow-sm)' }}><Icon name="plus" size={26} stroke={2.6} /></span>
       <div style={{ fontSize: 15, fontWeight: 800, whiteSpace: 'nowrap', color: 'var(--text)' }}>아이 등록하기</div>
       <span style={{ fontSize: 11.5, color: 'var(--text-sub)', fontWeight: 600, whiteSpace: 'nowrap' }}>새 친구를 맞이해요</span>
-    </div>
-  );
+    </div>);
+
 }
 
 function ChildListMobile() {
@@ -200,13 +198,13 @@ function ChildListMobile() {
         </div>
         <div style={{ flex: 1, overflow: 'hidden', padding: '8px 20px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {M().children.map(c => <KidCard key={c.name} name={c.name} memos={c.memos} />)}
+            {M().children.map((c) => <KidCard key={c.name} name={c.name} memos={c.memos} />)}
           </div>
         </div>
         <BottomTab active="children" />
       </div>
-    </PhoneFrame>
-  );
+    </PhoneFrame>);
+
 }
 
 function ChildListDesktop() {
@@ -225,12 +223,12 @@ function ChildListDesktop() {
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
-            {M().children.map(c => <KidCard key={c.name} name={c.name} memos={c.memos} />)}
+            {M().children.map((c) => <KidCard key={c.name} name={c.name} memos={c.memos} />)}
           </div>
         </div>
       </div>
-    </DesktopWindow>
-  );
+    </DesktopWindow>);
+
 }
 
 Object.assign(window, { LoginMobile, LoginDesktop, HomeMobile, HomeDesktop, ChildListMobile, ChildListDesktop });

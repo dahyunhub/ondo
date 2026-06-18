@@ -62,7 +62,7 @@ function EmptyTimelineMobile() {
         </div>
         <EmptyState compact spot="sprout"
           title="아직 기록이 없어요"
-          desc="지호의 첫 메모를 남겨볼까요? 한 줄이면 충분해요."
+          desc={<>지호의 첫 메모를 남겨볼까요?<br/>한 줄이면 충분해요.</>}
           cta="첫 메모 남기기" />
         <BottomTab active="children" />
       </div>
@@ -134,7 +134,7 @@ function ReanalyzeModal({ compact }) {
         <Sidebar active="journal" teacher={E().teacher} cls={E().cls} />
         <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
           <div style={{ padding: '34px 40px', filter: 'blur(1.5px)', opacity: .6 }}>
-            <div className="jr-h1">하루 보육일지 초안</div>
+            <div className="jr-h1">하루 일지 초안</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 24 }}>
               {[0, 1, 2, 3].map(i => <div key={i} className="jr-card jr-card--soft" style={{ height: 96 }} />)}
             </div>

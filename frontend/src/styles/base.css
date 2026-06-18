@@ -7,29 +7,34 @@ html, body {
 }
 #app { min-height: 100vh; }
 * { -webkit-tap-highlight-color: transparent; }
+a { color: inherit; }
 
-/* 모바일 우선: 콘텐츠를 한 컬럼(폰 폭)으로 가운데 정렬 */
-.app-root { min-height: 100vh; }
-.app-col {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 480px;
-  min-height: 100vh;
-  margin: 0 auto;
-  background: var(--bg);
-  position: relative;
-}
-@media (min-width: 520px) {
-  .app-col { box-shadow: 0 0 40px rgba(120, 100, 70, 0.10); }
-}
-.app-main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+/* ============================================================
+   반응형 셸 — 데스크톱(사이드바) ↔ 모바일(하단 탭)
+   ============================================================ */
 
-/* 공통 화면 패딩 컨테이너 */
+/* 데스크톱: 좌측 사이드바 + 본문 */
+.shell-desktop { display: flex; min-height: 100vh; background: var(--bg); }
+.shell-main { flex: 1; min-width: 0; }
+/* 본문 안쪽 패딩/최대폭 (목업 padding 40px 48px 기준) */
+.dt-page { padding: 40px 48px; max-width: 1120px; }
+
+/* 모바일: 폰 폭 한 컬럼 가운데 정렬 */
+.shell-mobile {
+  display: flex; flex-direction: column;
+  width: 100%; max-width: 520px; min-height: 100vh;
+  margin: 0 auto; background: var(--bg); position: relative;
+}
+.shell-mobile-main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+@media (min-width: 540px) and (max-width: 899px) {
+  .shell-mobile { box-shadow: 0 0 40px rgba(120, 100, 70, 0.10); }
+}
+
+/* 공통 화면 패딩 컨테이너 (모바일) */
 .screen { padding: 0 20px; }
 
-/* 링크 기본 리셋 */
-a { color: inherit; }
+/* 전체화면(로그인·반선택) — 셸 없이 */
+.fullscreen { min-height: 100vh; background: var(--bg); }
 
 /* 가벼운 페이드 인 */
 .fade-enter-active { transition: opacity .18s ease; }

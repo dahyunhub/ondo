@@ -18,7 +18,7 @@ window.JR_DATA = {
 
   // 담당 반 (같은 반 이름·다른 학년도는 별개의 반)
   classes: [
-    { name: '햇살반', count: 24, year: '2026학년도', tag: '올해' },
+    { name: '달님반', count: 24, year: '2026학년도', tag: '올해' },
     { name: '햇살반', count: 22, year: '2025학년도', tag: '작년' },
   ],
 
@@ -34,9 +34,9 @@ window.JR_DATA = {
     { name: '김민준', txt: '점심시간에 처음 온 친구에게 먼저 다가가 자리를 안내해 줌', area: 'comm', time: '15:02', isNew: true },
   ],
 
-  // 오늘 전체 분석 → 하루 보육일지 초안 (누리과정 영역별)
+  // 오늘 전체 분석 → 하루 일지 초안 (누리과정 영역별)
   journalDraft: {
-    title: '6월 14일 보육일지 · 햇살반',
+    title: '6월 14일 일지 · 햇살반',
     blocks: [
       { area: 'social', txt: '블록 영역에서 또래 간 자리 다툼이 있었으나, 유아 스스로 “같이 쓰자”는 제안을 통해 갈등을 해결하는 모습이 관찰됨. 양보와 협력의 태도가 자라고 있음.' },
       { area: 'body', txt: '바깥놀이 중 넘어진 친구를 살피고 일으켜 주는 등 신체활동 속에서 배려 행동이 나타남. 대근육 활동에 적극적으로 참여함.' },
@@ -81,9 +81,9 @@ window.JR_DATA = {
 
   // 일지·분석 기록 (최신순)
   journalHistory: [
-    { date: '6월 14일', type: '하루 보육일지', time: '오늘 14:30', areas: ['social', 'body', 'art', 'nature'] },
-    { date: '6월 13일', type: '하루 보육일지', time: '어제 19:10', areas: ['comm', 'social', 'nature'] },
+    { date: '6월 14일', type: '하루 일지', time: '오늘 14:30', areas: ['social', 'body', 'art', 'nature'] },
+    { date: '6월 13일', type: '하루 일지', time: '어제 19:10', areas: ['comm', 'social', 'nature'] },
     { date: '6월 10일', type: '김민준 관찰평가', time: '6.10 20:02', areas: ['social', 'comm'], child: '김민준' },
-    { date: '6월 12일', type: '하루 보육일지', time: '6.12 18:45', areas: ['body', 'art'] },
+    { date: '6월 12일', type: '하루 일지', time: '6.12 18:45', areas: ['body', 'art'] },
   ],
 };

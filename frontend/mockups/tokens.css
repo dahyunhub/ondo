@@ -200,6 +200,17 @@
 @keyframes jr-sway { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
 @keyframes jr-pulse { 0%,100% { opacity: .3; transform: scale(.8); } 50% { opacity: 1; transform: scale(1); } }
 
+/* 로고 로더 — 위아래로 통통 (새싹처럼) */
+@media (prefers-reduced-motion: no-preference) {
+  .jr-logoloader img { animation: jr-bob 1.6s ease-in-out infinite; transform-origin: center bottom; }
+}
+@keyframes jr-bob {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  30% { transform: translateY(-12px) scale(0.98, 1.03); }
+  60% { transform: translateY(0) scale(1.03, 0.97); }
+  75% { transform: translateY(-4px) scale(1, 1); }
+}
+
 /* 메뉴 A/B 선택 카드 */
 .jr-menu-card {
   display: flex; gap: 14px; align-items: flex-start; padding: 18px; border-radius: 18px; cursor: pointer;

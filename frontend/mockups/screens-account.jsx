@@ -17,8 +17,8 @@ function AnalysisBig({ id, title, sub, desc, icon, accent }) {
       </div>
       <div style={{ fontSize: 13.5, color: 'var(--text-sub)', lineHeight: 1.55 }}>{desc}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13.5, fontWeight: 800, color: 'var(--brand-700)', whiteSpace: 'nowrap' }}>분석 시작 <Icon name="chevR" size={16} stroke={2.6} /></div>
-    </div>
-  );
+    </div>);
+
 }
 
 // 영역 색 점 묶음
@@ -26,19 +26,19 @@ function AreaDots({ areas }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
       <div style={{ display: 'flex', gap: 3 }}>
-        {areas.map(a => <span key={a} style={{ width: 9, height: 9, borderRadius: '50%', background: AREAS[a].color }} />)}
+        {areas.map((a) => <span key={a} style={{ width: 9, height: 9, borderRadius: '50%', background: AREAS[a].color }} />)}
       </div>
       <span style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 600, whiteSpace: 'nowrap' }}>{areas.length}개 영역</span>
-    </div>
-  );
+    </div>);
+
 }
 
 function JournalRow({ j }) {
   return (
     <div className="jr-card" style={{ padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-      {j.child
-        ? <Avatar name={j.child} size="sm" />
-        : <span style={{ width: 36, height: 36, borderRadius: 11, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--brand-100)', color: 'var(--brand-700)' }}><Icon name="journal" size={19} /></span>}
+      {j.child ?
+      <Avatar name={j.child} size="sm" /> :
+      <span style={{ width: 36, height: 36, borderRadius: 11, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--brand-100)', color: 'var(--brand-700)' }}><Icon name="journal" size={19} /></span>}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 14.5, fontWeight: 700, whiteSpace: 'nowrap' }}>{j.type}</span>
@@ -47,8 +47,8 @@ function JournalRow({ j }) {
         <div style={{ marginTop: 5 }}><AreaDots areas={j.areas} /></div>
       </div>
       <Icon name="chevR" size={18} style={{ color: 'var(--text-faint)', flex: '0 0 auto' }} />
-    </div>
-  );
+    </div>);
+
 }
 
 function TodayCta({ wide }) {
@@ -57,11 +57,11 @@ function TodayCta({ wide }) {
       <span style={{ width: 46, height: 46, borderRadius: 14, flex: '0 0 auto', background: 'rgba(255,255,255,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}><Icon name="sparkle" size={26} /></span>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', whiteSpace: 'nowrap' }}>오늘 메모 4개로 일지 쓰기</div>
-        <div style={{ fontSize: 13, color: '#7a5e22', fontWeight: 600, marginTop: 2 }}>하루 보육일지를 바로 만들어요</div>
+        <div style={{ fontSize: 13, color: '#7a5e22', fontWeight: 600, marginTop: 2 }}>하루 일지를 바로 만들어요</div>
       </div>
       <Icon name="chevR" size={22} style={{ color: 'var(--text)' }} />
-    </div>
-  );
+    </div>);
+
 }
 
 function JournalHubMobile() {
@@ -75,7 +75,7 @@ function JournalHubMobile() {
           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-sub)', marginBottom: 10 }}>어떤 걸 분석할까요?</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 22 }}>
             <AnalysisBig id="A" title="한 아이 분석" sub="개인 관찰 평가" icon="me" accent="rgba(201,168,232,.3)" desc="한 아이의 기록을 모아 상담·발달평가용 관찰 평가를 만들어요." />
-            <AnalysisBig id="B" title="오늘 전체 분석" sub="하루 보육일지" icon="journal" accent="var(--brand-300)" desc="오늘 반 전체 메모로 매일 제출하는 보육일지를 만들어요." />
+            <AnalysisBig id="B" title="오늘 전체 분석" sub="하루 일지" icon="journal" accent="var(--brand-300)" desc="오늘 반 전체 메모로 매일 제출하는 일지를 만들어요." />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
             <span style={{ fontSize: 14, fontWeight: 800, whiteSpace: 'nowrap' }}>최근 만든 일지</span>
@@ -87,8 +87,8 @@ function JournalHubMobile() {
         </div>
         <BottomTab active="journal" />
       </div>
-    </PhoneFrame>
-  );
+    </PhoneFrame>);
+
 }
 
 function JournalHubDesktop() {
@@ -101,7 +101,7 @@ function JournalHubDesktop() {
           <div style={{ fontSize: 15, color: 'var(--text-sub)', marginBottom: 26 }}>{AC().date} · {AC().cls} · 오늘 메모 4개</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.1fr', gap: 16, marginBottom: 30 }}>
             <AnalysisBig id="A" title="한 아이 분석" sub="개인 관찰 평가" icon="me" accent="rgba(201,168,232,.3)" desc="한 아이의 기록을 모아 상담·발달평가용 관찰 평가를 만들어요." />
-            <AnalysisBig id="B" title="오늘 전체 분석" sub="하루 보육일지" icon="journal" accent="var(--brand-300)" desc="오늘 반 전체 메모로 매일 제출하는 보육일지를 만들어요." />
+            <AnalysisBig id="B" title="오늘 전체 분석" sub="하루 일지" icon="journal" accent="var(--brand-300)" desc="오늘 반 전체 메모로 매일 제출하는 일지를 만들어요." />
             <div style={{ display: 'flex', alignItems: 'stretch' }}><TodayCta wide /></div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
@@ -113,8 +113,8 @@ function JournalHubDesktop() {
           </div>
         </div>
       </div>
-    </DesktopWindow>
-  );
+    </DesktopWindow>);
+
 }
 
 // ===== 마이 (반 전환 포함) =====
@@ -133,11 +133,11 @@ function SwitchCard({ c, on, onClick }) {
         </div>
         <div style={{ fontSize: 12.5, color: 'var(--text-sub)', fontWeight: 600, marginTop: 2, whiteSpace: 'nowrap' }}>{c.year} · 원아 {c.count}명</div>
       </div>
-      {on
-        ? <Icon name="check" size={20} stroke={2.6} style={{ color: 'var(--brand-700)', flex: '0 0 auto' }} />
-        : <span style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--brand-700)', whiteSpace: 'nowrap' }}>보기</span>}
-    </div>
-  );
+      {on ?
+      <Icon name="check" size={20} stroke={2.6} style={{ color: 'var(--brand-700)', flex: '0 0 auto' }} /> :
+      <span style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--brand-700)', whiteSpace: 'nowrap' }}>보기</span>}
+    </div>);
+
 }
 
 // 반 전환하기 모달 — 지금까지 맡았던 반 중에서 선택
@@ -159,8 +159,8 @@ function ClassSwitchModal({ idx, onSelect, onClose, compact }) {
           </div>
         </div>
       </div>
-    </>
-  );
+    </>);
+
 }
 
 function SettingRow({ icon, label, sub, danger, onClick }) {
@@ -172,8 +172,8 @@ function SettingRow({ icon, label, sub, danger, onClick }) {
         {sub && <div style={{ fontSize: 12.5, color: 'var(--text-sub)', fontWeight: 600, whiteSpace: 'nowrap', marginTop: 2 }}>{sub}</div>}
       </div>
       {!danger && <Icon name="chevR" size={18} style={{ marginLeft: 'auto', color: 'var(--text-faint)', flex: '0 0 auto' }} />}
-    </div>
-  );
+    </div>);
+
 }
 
 // 작년 반 보는 중 안내 배너
@@ -182,8 +182,8 @@ function ViewingBanner({ sel }) {
     <div className="jr-banner" style={{ marginBottom: 18 }}>
       <Icon name="clock" size={20} style={{ color: 'var(--brand-700)', flex: '0 0 auto' }} />
       <span style={{ fontSize: 13, fontWeight: 700 }}>{sel.name} {sel.year} 기록을 보는 중이에요. 지난 반 아이들 기록을 확인할 수 있어요.</span>
-    </div>
-  );
+    </div>);
+
 }
 
 function ProfileBlock({ big }) {
@@ -197,8 +197,8 @@ function ProfileBlock({ big }) {
         <div style={{ fontSize: 13.5, color: 'var(--text-sub)', whiteSpace: 'nowrap', marginTop: 2 }}>{AC().teacherEmail}</div>
       </div>
       <button className="jr-btn jr-btn--secondary jr-btn--sm" style={{ marginLeft: 'auto', flex: '0 0 auto' }}>프로필 수정</button>
-    </div>
-  );
+    </div>);
+
 }
 
 function MyPageMobile({ initialIdx = 0, initialOpen = false }) {
@@ -223,9 +223,9 @@ function MyPageMobile({ initialIdx = 0, initialOpen = false }) {
         </div>
         <BottomTab active="me" />
       </div>
-      {open && <ClassSwitchModal idx={idx} onSelect={(i) => { setIdx(i); setOpen(false); }} onClose={() => setOpen(false)} compact />}
-    </PhoneFrame>
-  );
+      {open && <ClassSwitchModal idx={idx} onSelect={(i) => {setIdx(i);setOpen(false);}} onClose={() => setOpen(false)} compact />}
+    </PhoneFrame>);
+
 }
 
 function MyPageDesktop({ initialIdx = 0, initialOpen = false }) {
@@ -253,11 +253,11 @@ function MyPageDesktop({ initialIdx = 0, initialOpen = false }) {
               </div>
             </div>
           </div>
-          {open && <ClassSwitchModal idx={idx} onSelect={(i) => { setIdx(i); setOpen(false); }} onClose={() => setOpen(false)} />}
+          {open && <ClassSwitchModal idx={idx} onSelect={(i) => {setIdx(i);setOpen(false);}} onClose={() => setOpen(false)} />}
         </div>
       </div>
-    </DesktopWindow>
-  );
+    </DesktopWindow>);
+
 }
 
 Object.assign(window, { JournalHubMobile, JournalHubDesktop, MyPageMobile, MyPageDesktop });

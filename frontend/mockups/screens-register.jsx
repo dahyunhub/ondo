@@ -83,7 +83,7 @@ function OnboardMobile() {
     <PhoneFrame>
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '6px 22px 12px' }}>
-          <div className="jr-logo" style={{ fontSize: 22, display: 'flex', alignItems: 'center', gap: 7 }}><Logo size={24} /> 자람</div>
+          <LogoLockup height={30} />
           <div className="jr-h1" style={{ fontSize: 22, marginTop: 14 }}>우리 반 아이들을<br/>등록해 주세요</div>
           <div style={{ fontSize: 13.5, color: 'var(--text-sub)', marginTop: 6, lineHeight: 1.5 }}>햇살반 친구들을 한 명씩 추가해요. 나중에 언제든 더할 수 있어요.</div>
         </div>
@@ -120,7 +120,7 @@ function OnboardDesktop() {
       <div style={{ display: 'flex', height: '100%' }}>
         {/* 좌: 입력 폼 */}
         <div style={{ flex: '0 0 auto', width: 460, padding: '36px 44px', borderRight: '1px solid var(--hair)', overflow: 'hidden' }}>
-          <div className="jr-logo" style={{ fontSize: 24, display: 'flex', alignItems: 'center', gap: 8 }}><Logo size={28} /> 자람</div>
+          <LogoLockup height={34} />
           <div className="jr-h1" style={{ marginTop: 16 }}>우리 반 아이들을 등록해요</div>
           <div style={{ fontSize: 14, color: 'var(--text-sub)', marginTop: 6, marginBottom: 26, lineHeight: 1.5 }}>햇살반 친구들을 한 명씩 추가해 주세요.<br/>나중에 언제든 더하거나 수정할 수 있어요.</div>
           <RegisterFields name="" birth="" sex="남" />

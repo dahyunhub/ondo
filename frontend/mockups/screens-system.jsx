@@ -21,9 +21,8 @@ function Group({ title, children }) {
 function TokenSheet() {
   return (
     <div className="jr" style={{ background: 'var(--bg)', padding: 44, width: 1180 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-        <Logo size={36} />
-        <div className="jr-logo" style={{ fontSize: 30 }}>자람</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 6 }}>
+        <LogoLockup height={44} />
         <div className="jr-display" style={{ marginLeft: 8 }}>디자인 토큰</div>
       </div>
       <div className="jr-body" style={{ color: 'var(--text-sub)', marginBottom: 34 }}>봄 햇살처럼 따뜻하고 둥근, 그러나 일할 땐 또렷하게 정돈된 시스템.</div>

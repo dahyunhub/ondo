@@ -194,8 +194,8 @@ function Sidebar({ active = 'home', teacher = '김민서', cls = '햇살반' }) 
   return (
     <div style={{ width: 248, height: '100%', background: 'var(--surface)', borderRight: '1px solid var(--hair)',
       display: 'flex', flexDirection: 'column', padding: '26px 18px', flex: '0 0 auto' }}>
-      <div className="jr-logo" style={{ fontSize: 26, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 9, padding: '0 8px 24px' }}>
-        <Logo size={30} /> 자람
+      <div style={{ padding: '0 8px 24px' }}>
+        <LogoLockup height={38} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {items.map(it => {
@@ -220,15 +220,49 @@ function Sidebar({ active = 'home', teacher = '김민서', cls = '햇살반' }) 
   );
 }
 
-// ---------- 로고 마크 (단순 새싹 도형) ----------
+// ---------- 로고 마크 (이미지) ----------
 function Logo({ size = 32 }) {
+  // 마크 원본 비율 580x690 (세로가 약간 긺) — 정사각 박스 안에 맞춤
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" style={{ flex: '0 0 auto' }}>
-      <circle cx="16" cy="16" r="16" fill="#FFD45E" />
-      <path d="M16 24 V15" stroke="#5E9C72" strokeWidth="2.4" strokeLinecap="round" />
-      <path d="M16 18 C10 17 7 12 8 7 C14 7 18 11 16 18 Z" fill="#7FBF8E" />
-      <path d="M16 15 C22 14 25 9 24 4 C18 5 14 9 16 15 Z" fill="#A8E0BB" />
-    </svg>
+    <img src="assets/logo-mark.png" alt="자람" width={size} height={size}
+      style={{ flex: '0 0 auto', objectFit: 'contain', display: 'block' }} />
+  );
+}
+
+// ---------- 로고 로더 (자람 마크가 위아래로 통통) ----------
+function LogoLoader({ size = 120 }) {
+  return (
+    <div className="jr-logoloader" style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <img src="assets/logo-mark.png" alt="자람" width={size} height={size}
+        style={{ objectFit: 'contain', display: 'block' }} />
+    </div>
+  );
+}
+
+// ---------- 가로 로크업 (마크 + 자람) ----------
+function LogoLockup({ height = 44 }) {
+  // 원본 858x439 → 비율 유지
+  return (
+    <img src="assets/logo-lockup.png" alt="자람" height={height}
+      style={{ flex: '0 0 auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
+  );
+}
+
+// ---------- 세로 로크업 (마크 위 + 자람 아래) ----------
+function LogoVertical({ height = 120 }) {
+  // 원본 411x666 → 비율 유지
+  return (
+    <img src="assets/logo-vertical.png" alt="자람" height={height}
+      style={{ flex: '0 0 auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
+  );
+}
+
+// ---------- 타이틀(자람 글자만) ----------
+function LogoTitle({ height = 40 }) {
+  // 원본 584x292
+  return (
+    <img src="assets/logo-title.png" alt="자람" height={height}
+      style={{ flex: '0 0 auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
   );
 }
 
@@ -259,5 +293,5 @@ function MobileHeader({ cls = '햇살반', date = '6월 14일 토요일', right 
 
 Object.assign(window, {
   AREAS, avatarColor, Icon, NuriChip, Avatar, SproutLoader,
-  PhoneFrame, DesktopWindow, BottomTab, Sidebar, Logo, Fab, MobileHeader,
+  PhoneFrame, DesktopWindow, BottomTab, Sidebar, Logo, LogoLoader, LogoLockup, LogoVertical, LogoTitle, Fab, MobileHeader,
 });

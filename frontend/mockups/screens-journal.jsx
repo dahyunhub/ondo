@@ -5,7 +5,7 @@ const JD = () => window.JR_DATA;
 function AnalysisMenu({ active = 'B', compact }) {
   const items = [
     { id: 'A', t: '한 아이 분석', s: '개인 관찰 평가', ic: 'me' },
-    { id: 'B', t: '오늘 전체 분석', s: '하루 보육일지', ic: 'journal' },
+    { id: 'B', t: '오늘 전체 분석', s: '하루 일지', ic: 'journal' },
   ];
   return (
     <div style={{ display: 'flex', gap: 10 }}>
@@ -66,7 +66,7 @@ function TodayMemoList({ withNew, compact }) {
 function LoadingView({ compact }) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 30 }}>
-      <SproutLoader size={compact ? 104 : 120} />
+      <LogoLoader size={compact ? 116 : 132} />
       <div className="jr-h1" style={{ marginTop: 22, fontSize: compact ? 21 : 24 }}>오늘 메모를 모아<br/>일지를 쓰고 있어요</div>
       <div className="jr-body" style={{ color: 'var(--text-sub)', marginTop: 10 }}>잠시만요 — 약 15초 걸려요 ☀️</div>
       <div style={{ display: 'flex', gap: 8, marginTop: 22 }}>
@@ -195,7 +195,7 @@ function JournalMobile({ state = 'draft' }) {
   return (
     <PhoneFrame>
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <JournalHeader title="하루 보육일지" sub="햇살반 · 6월 14일 · AI 초안" onMobile />
+        <JournalHeader title="하루 일지" sub="햇살반 · 6월 14일 · AI 초안" onMobile />
         <div style={{ padding: '0 18px 14px' }}><AnalysisMenu active="B" compact /></div>
         <div style={{ flex: 1, overflow: 'hidden', padding: '4px 18px 8px', display: 'flex', flexDirection: 'column', gap: 11 }}>
           <div style={{ fontSize: 12.5, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="pencil" size={13} /> 카드를 눌러 바로 수정할 수 있어요</div>
@@ -227,7 +227,7 @@ function JournalDesktop({ state = 'draft' }) {
         </div>
         {/* 우: AI 결과 */}
         <div style={{ flex: 1, overflow: 'hidden', padding: '28px 36px', display: 'flex', flexDirection: 'column' }}>
-          <JournalHeader title="하루 보육일지 초안" sub="6월 14일 · AI가 누리과정 영역별로 정리했어요" />
+          <JournalHeader title="하루 일지 초안" sub="6월 14일 · AI가 누리과정 영역별로 정리했어요" />
           <div style={{ margin: '18px 0', maxWidth: 440 }}><AnalysisMenu active="B" /></div>
           <div style={{ flex: 1, overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, alignContent: 'start' }}>
             {JD().journalDraft.blocks.map((b, i) => <AreaBlock key={i} {...b} />)}

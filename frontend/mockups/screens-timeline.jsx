@@ -125,7 +125,7 @@ function EvalGenModal({ onClose, compact }) {
         <div style={{ background: 'var(--surface)', borderRadius: compact ? '26px 26px 0 0' : 24, padding: compact ? '24px 22px 28px' : '28px 30px', width: '100%', maxWidth: compact ? '100%' : 440, boxShadow: 'var(--shadow-lg)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 8 }}>
             <Avatar name="김민준" size="sm" />
-            <div style={{ fontSize: 17, fontWeight: 800 }}>민준이 개인평가 만들기</div>
+            <div style={{ fontSize: 17, fontWeight: 800 }}>김민준 개인평가 만들기</div>
             <button onClick={onClose} style={{ marginLeft: 'auto', border: 'none', background: 'var(--surface-soft)', borderRadius: '50%', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-sub)', cursor: 'pointer', flex: '0 0 auto' }}><Icon name="x" size={18} /></button>
           </div>
           <div style={{ fontSize: 13.5, color: 'var(--text-sub)', lineHeight: 1.5, marginBottom: 18 }}>직전 평가 이후부터 오늘까지의 관찰 기록을 모아 분석해요.</div>

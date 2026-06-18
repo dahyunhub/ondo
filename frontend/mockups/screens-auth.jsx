@@ -6,19 +6,19 @@ const { useState } = React;
 function KakaoIcon({ size = 20 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="#191600" style={{ flex: '0 0 auto' }}>
-      <path d="M12 3.5C6.75 3.5 2.5 6.84 2.5 10.96c0 2.66 1.78 4.99 4.46 6.31-.2.71-.71 2.57-.81 2.97-.13.49.18.49.38.36.16-.11 2.5-1.7 3.52-2.39.47.07.96.1 1.45.1 5.25 0 9.5-3.34 9.5-7.46S17.25 3.5 12 3.5z"/>
-    </svg>
-  );
+      <path d="M12 3.5C6.75 3.5 2.5 6.84 2.5 10.96c0 2.66 1.78 4.99 4.46 6.31-.2.71-.71 2.57-.81 2.97-.13.49.18.49.38.36.16-.11 2.5-1.7 3.52-2.39.47.07.96.1 1.45.1 5.25 0 9.5-3.34 9.5-7.46S17.25 3.5 12 3.5z" />
+    </svg>);
+
 }
 function GoogleIcon({ size = 20 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" style={{ flex: '0 0 auto' }}>
-      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-    </svg>
-  );
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+    </svg>);
+
 }
 
 // ---------- 상단 탭 메뉴 ----------
@@ -36,11 +36,11 @@ function AuthTabs({ tab, setTab, big }) {
             {label}
             <span style={{ position: 'absolute', left: 0, right: 0, bottom: -2, height: 3, borderRadius: 3,
               background: on ? 'var(--brand-500)' : 'transparent', transition: 'background .15s' }} />
-          </button>
-        );
+          </button>);
+
       })}
-    </div>
-  );
+    </div>);
+
 }
 
 // ---------- 입력 필드 ----------
@@ -49,8 +49,8 @@ function Field({ label, type = 'text', placeholder, value }) {
     <div>
       <label className="jr-field-label">{label}</label>
       <input className="jr-input" type={type} placeholder={placeholder} defaultValue={value} />
-    </div>
-  );
+    </div>);
+
 }
 
 // ---------- 소셜 로그인 버튼 묶음 ----------
@@ -70,8 +70,8 @@ function SocialButtons({ verb = '시작하기' }) {
           <GoogleIcon size={19} /> Google로 {verb}
         </button>
       </div>
-    </>
-  );
+    </>);
+
 }
 
 // ---------- 로그인 폼 ----------
@@ -88,8 +88,8 @@ function LoginForm({ big }) {
         </div>
       </div>
       <button className="jr-btn jr-btn--primary jr-btn--block jr-btn--lg" style={{ marginTop: 4 }}>로그인 <Icon name="chevR" size={20} /></button>
-    </div>
-  );
+    </div>);
+
 }
 
 // ---------- 회원가입 폼 ----------
@@ -105,20 +105,19 @@ function SignupForm({ big }) {
       <p style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', lineHeight: 1.6, marginTop: 4 }}>
         가입 시 <span style={{ color: 'var(--text-sub)', textDecoration: 'underline' }}>이용약관</span>과 <span style={{ color: 'var(--text-sub)', textDecoration: 'underline' }}>개인정보 처리방침</span>에 동의하게 돼요.
       </p>
-    </div>
-  );
+    </div>);
+
 }
 
 // ---------- 브랜드 패널 (데스크톱 좌측) ----------
 function BrandPanel() {
   return (
-    <div style={{ flex: '0 0 44%', background: 'linear-gradient(160deg, #FFE08A, #FFD45E)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 40 }}>
-      <Logo size={84} />
-      <div className="jr-logo" style={{ fontSize: 52, marginTop: 18, color: 'var(--text)' }}>자람</div>
-      <div style={{ fontSize: 18, fontWeight: 700, color: '#7a5e22', marginTop: 10, whiteSpace: 'nowrap' }}>오늘도 우리 반, 함께해요 ☀️</div>
-      <div style={{ fontSize: 14, color: '#8a6c2c', marginTop: 24, lineHeight: 1.6, maxWidth: 300 }}>짧은 메모만 남기면 AI가 일지를 만들고,<br/>기록은 아이별로 차곡차곡 쌓여요.</div>
-    </div>
-  );
+    <div style={{ flex: '0 0 44%', background: 'linear-gradient(165deg, #FFF6DC, #FFFBF2)', borderRight: '1px solid var(--hair)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 40 }}>
+      <LogoVertical height={190} />
+      <div style={{ fontSize: 18, fontWeight: 700, color: '#7a5e22', marginTop: 18, whiteSpace: 'nowrap' }}>오늘도 우리 함께해요 ☀️</div>
+      <div style={{ fontSize: 14, color: '#8a6c2c', marginTop: 24, lineHeight: 1.6, maxWidth: 300 }}>짧은 메모만 남기면 AI가 일지를 만들고,<br />기록은 아이별로 차곡차곡 쌓여요.</div>
+    </div>);
+
 }
 
 // ---------- 모바일 ----------
@@ -127,17 +126,16 @@ function AuthMobile({ initial = 'login' }) {
   return (
     <PhoneFrame>
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ textAlign: 'center', padding: '12px 0 8px' }}>
-          <Logo size={42} />
-          <div className="jr-logo" style={{ fontSize: 27, marginTop: 6 }}>자람</div>
+        <div style={{ textAlign: 'center', padding: '12px 0 8px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <LogoVertical height={96} />
         </div>
         <div style={{ flex: 1, overflow: 'hidden', padding: '0 26px' }}>
           <AuthTabs tab={tab} setTab={setTab} />
           {tab === 'login' ? <LoginForm /> : <SignupForm />}
         </div>
       </div>
-    </PhoneFrame>
-  );
+    </PhoneFrame>);
+
 }
 
 // ---------- 데스크톱 ----------
@@ -156,8 +154,8 @@ function AuthDesktop({ initial = 'login' }) {
           </div>
         </div>
       </div>
-    </DesktopWindow>
-  );
+    </DesktopWindow>);
+
 }
 
 Object.assign(window, { KakaoIcon, GoogleIcon, AuthMobile, AuthDesktop });

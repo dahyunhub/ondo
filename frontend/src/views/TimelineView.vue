@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../lib/api'
 import { session } from '../stores/session'
 import { areaMeta, AREA_ORDER, FILTER_ORDER } from '../lib/areas'
+import { useViewport } from '../lib/useViewport'
 import Avatar from '../components/Avatar.vue'
 import AppIcon from '../components/AppIcon.vue'
 import NuriChip from '../components/NuriChip.vue'
@@ -12,6 +13,7 @@ import ChildFormModal from '../components/ChildFormModal.vue'
 
 const route = useRoute()
 const router = useRouter()
+const { isDesktop } = useViewport()
 const classroomId = session.classroom?.id
 const rawId = Number(route.params.childId)
 const childId = Number.isInteger(rawId) && rawId > 0 ? rawId : null
@@ -20,8 +22,8 @@ const child = ref(null)
 const entries = ref([])
 const loading = ref(true)
 const error = ref('')
-const filter = ref('ALL')        // 'ALL' | enum | 'UNCLASSIFIED'
-const areaMenuFor = ref(null)    // memoId | null
+const filter = ref('ALL')
+const areaMenuFor = ref(null)
 const editChild = ref(false)
 const patching = ref(false)
 
@@ -29,20 +31,14 @@ async function loadChild() {
   const list = await api.get(`/classrooms/${classroomId}/children`)
   child.value = list.find((c) => c.id === childId) || null
 }
-
 async function loadTimeline() {
   const q = filter.value === 'ALL' ? '' : `?area=${filter.value}`
   entries.value = await api.get(`/children/${childId}/timeline${q}`)
 }
-
 async function reload() {
   loading.value = true
   error.value = ''
-  if (childId === null) {
-    error.value = '잘못된 접근이에요.'
-    loading.value = false
-    return
-  }
+  if (childId === null) { error.value = '잘못된 접근이에요.'; loading.value = false; return }
   try {
     await Promise.all([child.value ? Promise.resolve() : loadChild(), loadTimeline()])
   } catch (e) {
@@ -51,22 +47,17 @@ async function reload() {
     loading.value = false
   }
 }
-
 async function setFilter(f) {
   filter.value = f
   try { await loadTimeline() } catch (e) { error.value = e.message }
 }
-
 async function pickArea(memoId, areaEnum) {
   if (patching.value) return
   patching.value = true
   try {
     await api.patch(`/memos/${memoId}/curriculum-area`, { curriculumArea: areaEnum })
     areaMenuFor.value = null
-    // 활성 필터가 방금 지정한 영역이 아니면 메모가 화면에서 사라져 삭제처럼 보임 → 전체로 풀어 유지
-    if (filter.value !== 'ALL' && filter.value !== areaEnum) {
-      filter.value = 'ALL'
-    }
+    if (filter.value !== 'ALL' && filter.value !== areaEnum) filter.value = 'ALL'
     await loadTimeline()
   } catch (e) {
     error.value = e.message || '영역 수정에 실패했어요.'
@@ -74,27 +65,14 @@ async function pickArea(memoId, areaEnum) {
     patching.value = false
   }
 }
-
 function onChildSaved() { editChild.value = false; loadChild() }
 function onChildDeleted() { router.replace({ name: 'children' }) }
 
-// createdAt 은 UTC Instant('…Z') — 브라우저 로컬 타임존으로 표시/그룹.
 const pad = (n) => String(n).padStart(2, '0')
-function fmtTime(iso) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-function dateKey(iso) {
-  const d = new Date(iso)
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
-function dateLabel(iso) {
-  const d = new Date(iso)
-  return `${d.getMonth() + 1}월 ${d.getDate()}일`
-}
+function fmtTime(iso) { if (!iso) return ''; const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}` }
+function dateKey(iso) { const d = new Date(iso); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` }
+function dateLabel(iso) { const d = new Date(iso); return `${d.getMonth() + 1}월 ${d.getDate()}일` }
 
-// 로컬 날짜별 그룹 (최신순 유지)
 const groups = computed(() => {
   const out = []
   for (const e of entries.value) {
@@ -105,135 +83,193 @@ const groups = computed(() => {
   }
   return out
 })
-
 const total = computed(() => entries.value.length)
+const showEmpty = computed(() => filter.value === 'ALL' && total.value === 0)
 
 onMounted(reload)
 </script>
 
 <template>
-  <div class="tl">
-    <header class="hdr screen">
-      <button class="icbtn" @click="router.push({ name: 'children' })"><AppIcon name="back" :size="24" /></button>
-      <div class="head" v-if="child">
-        <Avatar :name="child.name" size="lg" />
-        <div class="head-info">
-          <div class="jr-h1 name">{{ child.name }}</div>
-          <div class="sub">{{ session.classroom?.name }} · 관찰기록 <b>{{ total }}</b>개</div>
+  <div :class="isDesktop ? 'tl-dt' : 'tl-m'">
+    <!-- ============ 데스크톱: 좌측 프로필 + 우측 타임라인 ============ -->
+    <template v-if="isDesktop">
+      <div class="left-pane">
+        <button class="back-link" @click="router.push({ name: 'children' })"><AppIcon name="back" :size="18" /> 아이 목록</button>
+        <div v-if="child" class="head">
+          <Avatar :name="child.name" size="lg" />
+          <div class="head-info">
+            <div class="jr-h1 name" style="font-size:26px">{{ child.name }}</div>
+            <div class="sub">{{ session.classroom?.name }} · 관찰기록 <b>{{ total }}</b>개</div>
+          </div>
+          <button class="icbtn" @click="editChild = true" aria-label="정보 수정"><AppIcon name="dots" :size="20" /></button>
         </div>
-      </div>
-      <button class="icbtn" style="margin-left:auto" @click="editChild = true" aria-label="정보 수정">
-        <AppIcon name="dots" :size="22" />
-      </button>
-    </header>
-
-    <div class="screen body">
-      <p v-if="loading" class="muted">불러오는 중…</p>
-      <p v-else-if="error" class="err">{{ error }}</p>
-
-      <!-- 빈 상태 -->
-      <div v-else-if="filter === 'ALL' && total === 0" class="empty">
-        <SproutLoader :size="92" />
-        <div class="jr-h2" style="margin-top:18px">아직 기록이 없어요</div>
-        <p class="empty-d">{{ child ? child.name : '이 아이' }}의 오늘 첫 메모를 남겨볼까요?</p>
-        <RouterLink :to="{ name: 'memo', query: { childId } }" class="jr-btn jr-btn--primary" style="margin-top:22px">
-          <AppIcon name="plus" :size="20" :stroke="2.6" /> 첫 메모 남기기
-        </RouterLink>
-      </div>
-
-      <template v-else>
-        <!-- 개인평가(Epic 4 예정) -->
-        <div class="eval-soon">
+        <!-- 개인 관찰평가 (Epic 4 예정) -->
+        <div class="eval-soon" style="margin-top:22px">
           <span class="eval-ic"><AppIcon name="me" :size="17" /></span>
           <span class="eval-t">개인 관찰평가</span>
           <span class="eval-badge">Epic 4 예정</span>
         </div>
+      </div>
 
-        <!-- 필터 -->
-        <div class="filter-bar">
-          <div class="filter-title">관찰 기록 타임라인</div>
-          <div class="chips">
+      <div class="right-pane">
+        <p v-if="loading" class="muted">불러오는 중…</p>
+        <p v-else-if="error" class="err">{{ error }}</p>
+        <div v-else-if="showEmpty" class="empty">
+          <SproutLoader :size="92" />
+          <div class="jr-h2" style="margin-top:18px">아직 기록이 없어요</div>
+          <p class="empty-d">{{ child ? child.name : '이 아이' }}의 오늘 첫 메모를 남겨볼까요?</p>
+          <RouterLink :to="{ name: 'memo', query: { childId } }" class="jr-btn jr-btn--primary" style="margin-top:22px">
+            <AppIcon name="plus" :size="20" :stroke="2.6" /> 첫 메모 남기기
+          </RouterLink>
+        </div>
+        <template v-else>
+          <div class="rp-head">
+            <span class="jr-h2">관찰 기록 타임라인</span>
+            <span class="rp-tip">최신순 · 영역 칩을 눌러 수정</span>
+          </div>
+          <div class="chips" style="margin-bottom:22px">
             <button class="jr-toggle" :class="{ 'is-on': filter === 'ALL' }" @click="setFilter('ALL')">전체</button>
-            <button
-              v-for="f in FILTER_ORDER" :key="f" class="jr-toggle" :class="{ 'is-on': filter === f }"
-              @click="setFilter(f)"
-            >
-              <span class="cdot" :style="{ background: areaMeta(f === 'UNCLASSIFIED' ? null : f).color,
-                border: f === 'UNCLASSIFIED' ? '1px dashed #9b9384' : 'none' }" />
+            <button v-for="f in FILTER_ORDER" :key="f" class="jr-toggle" :class="{ 'is-on': filter === f }" @click="setFilter(f)">
+              <span class="cdot" :style="{ background: areaMeta(f === 'UNCLASSIFIED' ? null : f).color, border: f === 'UNCLASSIFIED' ? '1px dashed #9b9384' : 'none' }" />
               {{ areaMeta(f === 'UNCLASSIFIED' ? null : f).ko }}
             </button>
           </div>
-        </div>
-
-        <p v-if="total === 0" class="muted" style="padding:8px 2px">이 영역의 기록이 없어요.</p>
-
-        <!-- 타임라인 -->
-        <div class="groups">
-          <div v-for="g in groups" :key="g.key" class="group">
-            <div class="date"><AppIcon name="cal" :size="15" /> {{ g.label }}</div>
-            <div class="items">
-              <div
-                v-for="e in g.items" :key="e.id" class="block"
-                :style="{ '--strip': areaMeta(e.curriculumArea).color }"
-                :class="{ open: areaMenuFor === e.id }"
-              >
-                <div class="block-top">
-                  <NuriChip :area="e.curriculumArea" />
-                  <button
-                    class="area-edit" :class="{ uncat: !e.curriculumArea }"
-                    @click="areaMenuFor = areaMenuFor === e.id ? null : e.id"
-                  >
-                    <template v-if="!e.curriculumArea">영역 지정 <AppIcon name="chevD" :size="13" :stroke="2.4" /></template>
-                    <AppIcon v-else name="pencil" :size="13" />
-                  </button>
-                  <span class="time">{{ fmtTime(e.createdAt) }}</span>
-                </div>
-                <div class="content">{{ e.content }}</div>
-
-                <!-- 영역 지정 드롭다운 -->
-                <div v-if="areaMenuFor === e.id" class="menu">
-                  <div class="menu-title">누리과정 영역 지정</div>
-                  <button
-                    v-for="a in AREA_ORDER" :key="a" class="menu-item"
-                    :class="{ on: e.curriculumArea === a }" :disabled="patching" @click="pickArea(e.id, a)"
-                  >
-                    <span class="mdot" :style="{ background: areaMeta(a).color }" />
-                    <span class="mlabel">{{ areaMeta(a).ko }}</span>
-                    <AppIcon v-if="e.curriculumArea === a" name="check" :size="15" :stroke="3" style="margin-left:auto;color:var(--brand-700)" />
-                  </button>
+          <p v-if="total === 0" class="muted" style="padding:8px 2px">이 영역의 기록이 없어요.</p>
+          <div class="groups" style="max-width:560px">
+            <div v-for="g in groups" :key="g.key" class="group">
+              <div class="date"><AppIcon name="cal" :size="15" /> {{ g.label }}</div>
+              <div class="items">
+                <div v-for="e in g.items" :key="e.id" class="block" :style="{ '--strip': areaMeta(e.curriculumArea).color }" :class="{ open: areaMenuFor === e.id }">
+                  <div class="block-top">
+                    <NuriChip :area="e.curriculumArea" />
+                    <button class="area-edit" :class="{ uncat: !e.curriculumArea }" @click="areaMenuFor = areaMenuFor === e.id ? null : e.id">
+                      <template v-if="!e.curriculumArea">영역 지정 <AppIcon name="chevD" :size="13" :stroke="2.4" /></template>
+                      <AppIcon v-else name="pencil" :size="13" />
+                    </button>
+                    <span class="time">{{ fmtTime(e.createdAt) }}</span>
+                  </div>
+                  <div class="content">{{ e.content }}</div>
+                  <div v-if="areaMenuFor === e.id" class="menu">
+                    <div class="menu-title">누리과정 영역 지정</div>
+                    <button v-for="a in AREA_ORDER" :key="a" class="menu-item" :class="{ on: e.curriculumArea === a }" :disabled="patching" @click="pickArea(e.id, a)">
+                      <span class="mdot" :style="{ background: areaMeta(a).color }" />
+                      <span class="mlabel">{{ areaMeta(a).ko }}</span>
+                      <AppIcon v-if="e.curriculumArea === a" name="check" :size="15" :stroke="3" style="margin-left:auto;color:var(--brand-700)" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- ============ 모바일: 스택 ============ -->
+    <template v-else>
+      <header class="m-head screen">
+        <button class="icbtn" @click="router.push({ name: 'children' })"><AppIcon name="back" :size="24" /></button>
+        <div class="head" v-if="child">
+          <Avatar :name="child.name" size="lg" />
+          <div class="head-info">
+            <div class="jr-h1 name">{{ child.name }}</div>
+            <div class="sub">{{ session.classroom?.name }} · 관찰기록 <b>{{ total }}</b>개</div>
+          </div>
         </div>
-      </template>
-    </div>
+        <button class="icbtn" style="margin-left:auto" @click="editChild = true" aria-label="정보 수정"><AppIcon name="dots" :size="22" /></button>
+      </header>
+
+      <div class="screen body">
+        <p v-if="loading" class="muted">불러오는 중…</p>
+        <p v-else-if="error" class="err">{{ error }}</p>
+        <div v-else-if="showEmpty" class="empty">
+          <SproutLoader :size="92" />
+          <div class="jr-h2" style="margin-top:18px">아직 기록이 없어요</div>
+          <p class="empty-d">{{ child ? child.name : '이 아이' }}의 오늘 첫 메모를 남겨볼까요?</p>
+          <RouterLink :to="{ name: 'memo', query: { childId } }" class="jr-btn jr-btn--primary" style="margin-top:22px">
+            <AppIcon name="plus" :size="20" :stroke="2.6" /> 첫 메모 남기기
+          </RouterLink>
+        </div>
+        <template v-else>
+          <div class="eval-soon">
+            <span class="eval-ic"><AppIcon name="me" :size="17" /></span>
+            <span class="eval-t">개인 관찰평가</span>
+            <span class="eval-badge">Epic 4 예정</span>
+          </div>
+          <div class="filter-bar">
+            <div class="filter-title">관찰 기록 타임라인</div>
+            <div class="chips">
+              <button class="jr-toggle" :class="{ 'is-on': filter === 'ALL' }" @click="setFilter('ALL')">전체</button>
+              <button v-for="f in FILTER_ORDER" :key="f" class="jr-toggle" :class="{ 'is-on': filter === f }" @click="setFilter(f)">
+                <span class="cdot" :style="{ background: areaMeta(f === 'UNCLASSIFIED' ? null : f).color, border: f === 'UNCLASSIFIED' ? '1px dashed #9b9384' : 'none' }" />
+                {{ areaMeta(f === 'UNCLASSIFIED' ? null : f).ko }}
+              </button>
+            </div>
+          </div>
+          <p v-if="total === 0" class="muted" style="padding:8px 2px">이 영역의 기록이 없어요.</p>
+          <div class="groups">
+            <div v-for="g in groups" :key="g.key" class="group">
+              <div class="date"><AppIcon name="cal" :size="15" /> {{ g.label }}</div>
+              <div class="items">
+                <div v-for="e in g.items" :key="e.id" class="block" :style="{ '--strip': areaMeta(e.curriculumArea).color }" :class="{ open: areaMenuFor === e.id }">
+                  <div class="block-top">
+                    <NuriChip :area="e.curriculumArea" />
+                    <button class="area-edit" :class="{ uncat: !e.curriculumArea }" @click="areaMenuFor = areaMenuFor === e.id ? null : e.id">
+                      <template v-if="!e.curriculumArea">영역 지정 <AppIcon name="chevD" :size="13" :stroke="2.4" /></template>
+                      <AppIcon v-else name="pencil" :size="13" />
+                    </button>
+                    <span class="time">{{ fmtTime(e.createdAt) }}</span>
+                  </div>
+                  <div class="content">{{ e.content }}</div>
+                  <div v-if="areaMenuFor === e.id" class="menu">
+                    <div class="menu-title">누리과정 영역 지정</div>
+                    <button v-for="a in AREA_ORDER" :key="a" class="menu-item" :class="{ on: e.curriculumArea === a }" :disabled="patching" @click="pickArea(e.id, a)">
+                      <span class="mdot" :style="{ background: areaMeta(a).color }" />
+                      <span class="mlabel">{{ areaMeta(a).ko }}</span>
+                      <AppIcon v-if="e.curriculumArea === a" name="check" :size="15" :stroke="3" style="margin-left:auto;color:var(--brand-700)" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </template>
 
     <!-- 메뉴 바깥 클릭 닫기 -->
     <div v-if="areaMenuFor !== null" class="menu-backdrop" @click="areaMenuFor = null" />
 
-    <ChildFormModal
-      v-if="editChild && child" mode="edit" :child="child"
-      @close="editChild = false" @saved="onChildSaved" @deleted="onChildDeleted"
-    />
+    <ChildFormModal v-if="editChild && child" mode="edit" :child="child" @close="editChild = false" @saved="onChildSaved" @deleted="onChildDeleted" />
   </div>
 </template>
 
 <style scoped>
-.tl { display: flex; flex-direction: column; }
-.hdr { display: flex; align-items: center; gap: 8px; padding-top: 10px; padding-bottom: 12px; }
+/* ===== 데스크톱 2-pane ===== */
+.tl-dt { display: flex; min-height: 100vh; }
+.left-pane { width: 400px; flex: 0 0 auto; padding: 34px 28px; border-right: 1px solid var(--hair); }
+.right-pane { flex: 1; min-width: 0; padding: 34px 40px; }
+.back-link { display: flex; align-items: center; gap: 6px; border: none; background: transparent; color: var(--text-sub); cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 600; margin-bottom: 22px; padding: 0; }
+.rp-head { display: flex; align-items: center; margin-bottom: 18px; }
+.rp-tip { margin-left: auto; font-size: 13px; color: var(--text-faint); }
+
+/* ===== 모바일 ===== */
+.tl-m { display: flex; flex-direction: column; }
+.m-head { display: flex; align-items: center; gap: 8px; padding-top: 10px; padding-bottom: 12px; }
+.body { padding-bottom: 28px; }
+
+/* 공통 */
 .icbtn { border: none; background: transparent; color: var(--text-sub); cursor: pointer; padding: 4px; }
 .head { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .head-info { min-width: 0; }
 .name { font-size: 22px; }
 .sub { font-size: 13.5px; color: var(--text-sub); margin-top: 2px; white-space: nowrap; }
 .sub b { color: var(--text); }
-.body { padding-bottom: 28px; }
 .muted { color: var(--text-sub); }
 .err { color: var(--warn); font-weight: 600; }
 .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 24px; min-height: 320px; }
 .empty-d { font-size: 16px; color: var(--text-sub); margin-top: 8px; line-height: 1.5; }
-.eval-soon { display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); margin-bottom: 16px; color: var(--text-sub); }
+.eval-soon { display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); margin-bottom: 16px; }
 .eval-ic { width: 28px; height: 28px; border-radius: 9px; background: var(--brand-300); color: var(--text); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
 .eval-t { font-size: 14.5px; font-weight: 800; color: var(--text); }
 .eval-badge { margin-left: auto; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--surface-soft); color: var(--text-faint); }

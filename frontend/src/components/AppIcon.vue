@@ -33,6 +33,8 @@ const PATHS = {
   pencil: '<path d="M4 20l4-1 11-11-3-3L5 16l-1 4z"/><path d="M14.5 5.5l3 3"/>',
   dots: '<circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/>',
   help: '<circle cx="12" cy="12" r="8.5"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.5 1.5c0 1.5-2 2-2 3.5"/><path d="M12 17.5v0"/>',
+  bell: '<path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 19a2 2 0 0 0 4 0"/>',
+  download: '<path d="M12 4v11M8 11l4 4 4-4"/><path d="M5 20h14"/>',
 }
 
 const inner = computed(() => PATHS[props.name] || '')
