@@ -1,12 +1,17 @@
 package com.ondo.journal;
 
 import com.ondo.journal.dto.JournalAnalyzeRequest;
+import com.ondo.journal.dto.JournalDetailResponse;
 import com.ondo.journal.dto.JournalResponse;
+import com.ondo.journal.dto.JournalUpdateRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,5 +34,20 @@ public class JournalController {
     public ResponseEntity<JournalResponse> analyze(@AuthenticationPrincipal Long teacherId,
                                                    @Valid @RequestBody JournalAnalyzeRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(journalService.analyze(teacherId, request));
+    }
+
+    /** [13] 단건 조회 — 200. */
+    @GetMapping("/{journalId}")
+    public JournalDetailResponse get(@AuthenticationPrincipal Long teacherId,
+                                     @PathVariable Long journalId) {
+        return journalService.getJournal(teacherId, journalId);
+    }
+
+    /** [14] 수정·확정(FR-5) — 200. */
+    @PutMapping("/{journalId}")
+    public JournalDetailResponse update(@AuthenticationPrincipal Long teacherId,
+                                        @PathVariable Long journalId,
+                                        @Valid @RequestBody JournalUpdateRequest request) {
+        return journalService.updateJournal(teacherId, journalId, request);
     }
 }

@@ -68,4 +68,10 @@ public class DailyJournal extends BaseTimeEntity {
                                            String content, LocalDateTime analyzedAt) {
         return new DailyJournal(teacherId, classroomId, journalDate, content, JournalStatus.DRAFT, analyzedAt);
     }
+
+    /** 교사의 수정·확정(FR-5, AI 없음). content(평탄화 JSON)·status 만 갱신. analyzedAt 은 분석 시각이라 유지. */
+    public void update(String content, JournalStatus status) {
+        this.content = content;
+        this.status = status;
+    }
 }

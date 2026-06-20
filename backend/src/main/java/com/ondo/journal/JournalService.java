@@ -18,13 +18,17 @@ import com.ondo.common.exception.BusinessException;
 import com.ondo.common.exception.ErrorCode;
 import com.ondo.classroom.ClassroomRepository;
 import com.ondo.journal.JournalPersistService.PersistResult;
+import com.ondo.journal.domain.DailyJournal;
 import com.ondo.journal.domain.JournalStatus;
 import com.ondo.journal.dto.JournalAnalyzeRequest;
+import com.ondo.journal.dto.JournalDetailResponse;
 import com.ondo.journal.dto.JournalResponse;
+import com.ondo.journal.dto.JournalUpdateRequest;
 import com.ondo.memo.MemoRepository;
 import com.ondo.memo.domain.CurriculumArea;
 import com.ondo.memo.domain.Memo;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -173,5 +177,30 @@ public class JournalService {
         JournalAnalysisResult result = journalResultParser.parse(ctx.restore(raw)); // 복원 후 파싱
         outputValidator.validate(result, expectedIndices);
         return result;
+    }
+
+    /** [13] 단건 조회 — 본인 일지만(없으면 JOURNAL_NOT_FOUND). AI 미사용. */
+    @Transactional(readOnly = true)
+    public JournalDetailResponse getJournal(Long teacherId, Long journalId) {
+        return toDetail(findOwned(teacherId, journalId));
+    }
+
+    /** [14] 수정·확정(FR-5) — content·status 저장(AI 미사용). */
+    @Transactional
+    public JournalDetailResponse updateJournal(Long teacherId, Long journalId, JournalUpdateRequest request) {
+        contentSerializer.validateFlatContent(request.content()); // 저장형 계약(요약+5영역 non-blank) 강제
+        DailyJournal journal = findOwned(teacherId, journalId);
+        journal.update(contentSerializer.toJson(request.content()), request.status()); // dirty checking
+        return toDetail(journal);
+    }
+
+    private DailyJournal findOwned(Long teacherId, Long journalId) {
+        return dailyJournalRepository.findByIdAndTeacherId(journalId, teacherId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOURNAL_NOT_FOUND));
+    }
+
+    private JournalDetailResponse toDetail(DailyJournal journal) {
+        return new JournalDetailResponse(journal.getId(), journal.getClassroomId(), journal.getJournalDate(),
+                journal.getStatus().name(), contentSerializer.toMap(journal.getContent()), journal.getAnalyzedAt());
     }
 }
