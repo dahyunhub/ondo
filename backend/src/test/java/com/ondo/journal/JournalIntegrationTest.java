@@ -29,6 +29,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
@@ -189,10 +190,11 @@ class JournalIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void persist_경합으로_UNIQUE위반시_JOURNAL_ALREADY_EXISTS로_변환된다() {
-        journalPersistService.save(teacherAId, classroomAId, today, "{}", List.of(memo1Id), Map.of());
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        journalPersistService.save(teacherAId, classroomAId, today, "{}", List.of(memo1Id), Map.of(), now);
 
         // 선검사를 건너뛴 두 번째 insert(경합 모사) → DB UNIQUE 위반 → 계약 코드로 변환
-        assertThatThrownBy(() -> journalPersistService.save(teacherAId, classroomAId, today, "{}", List.of(memo2Id), Map.of()))
+        assertThatThrownBy(() -> journalPersistService.save(teacherAId, classroomAId, today, "{}", List.of(memo2Id), Map.of(), now))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.JOURNAL_ALREADY_EXISTS);
@@ -206,7 +208,8 @@ class JournalIntegrationTest extends IntegrationTestSupport {
 
         JournalPersistService.PersistResult result = journalPersistService.save(
                 teacherAId, classroomAId, today, "{}", List.of(memo1Id, memo2Id),
-                Map.of(memo1Id, CurriculumArea.SOCIAL, memo2Id, CurriculumArea.ART));
+                Map.of(memo1Id, CurriculumArea.SOCIAL, memo2Id, CurriculumArea.ART),
+                LocalDateTime.now(ZoneOffset.UTC));
 
         assertThat(result.linkedMemoIds()).containsExactly(memo1Id); // 삭제된 memo2 제외
         assertThat(memoRepository.findById(memo1Id).orElseThrow().getCurriculumArea()).isEqualTo(CurriculumArea.SOCIAL);

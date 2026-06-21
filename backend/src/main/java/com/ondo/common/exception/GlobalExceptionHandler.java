@@ -9,8 +9,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.List;
 
@@ -51,6 +53,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleUnreadable(HttpMessageNotReadableException ex,
                                                      HttpServletRequest request) {
         // 잘못된 JSON·enum 값 등 본문 파싱 실패 → 500 대신 400
+        ErrorCode code = ErrorCode.VALIDATION_FAILED;
+        ApiError body = ApiError.of(code.getStatus().value(), code.name(), code.getDefaultMessage(),
+                request.getRequestURI());
+        return ResponseEntity.status(code.getStatus()).body(body);
+    }
+
+    @ExceptionHandler({MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ApiError> handleBadRequestParam(Exception ex, HttpServletRequest request) {
+        // 필수 쿼리 파라미터 누락·타입 불일치(예: 잘못된 date 형식) → 500 대신 400
         ErrorCode code = ErrorCode.VALIDATION_FAILED;
         ApiError body = ApiError.of(code.getStatus().value(), code.name(), code.getDefaultMessage(),
                 request.getRequestURI());

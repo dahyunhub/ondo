@@ -22,6 +22,7 @@ import com.ondo.journal.domain.DailyJournal;
 import com.ondo.journal.domain.JournalStatus;
 import com.ondo.journal.dto.JournalAnalyzeRequest;
 import com.ondo.journal.dto.JournalDetailResponse;
+import com.ondo.journal.dto.JournalListResponse;
 import com.ondo.journal.dto.JournalResponse;
 import com.ondo.journal.dto.JournalUpdateRequest;
 import com.ondo.memo.MemoRepository;
@@ -31,6 +32,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -106,14 +109,30 @@ public class JournalService {
             throw new BusinessException(ErrorCode.JOURNAL_ALREADY_EXISTS);
         }
 
-        // 그 날짜 반 전체 메모(부분 선택 없음)
+        AnalysisOutcome outcome = runAnalysisPipeline(classroomId, date);
+        PersistResult persisted = journalPersistService.save(
+                teacherId, classroomId, date, outcome.contentJson(), outcome.memoIds(), outcome.memoIdToArea(),
+                outcome.analyzedAt());
+
+        return new JournalResponse(persisted.journalId(), classroomId, date, JournalStatus.DRAFT.name(),
+                outcome.content(), persisted.analyzedAt(), persisted.linkedMemoIds());
+    }
+
+    /**
+     * analyze(생성)·reanalyze(덮어쓰기) 공통 AI 파이프라인:
+     * 묶음 로드(0건 → VALIDATION_FAILED) → 비식별화 → 프롬프트 → AiClient(TX 밖) → 복원·검증·1회 재요청 →
+     * (평탄화 content, contentJson, memoIds, index→영역 매핑).
+     */
+    private AnalysisOutcome runAnalysisPipeline(Long classroomId, LocalDate date) {
+        // 묶음 스냅샷 기준 시각 — AI 호출 '전'에 찍는다. 이래야 분석 도중 추가된 메모가
+        // (createdAt > analyzedAt) 판정에 잡혀 재분석 안내에서 누락되지 않는다(false negative 방지).
+        LocalDateTime analyzedAt = LocalDateTime.now(ZoneOffset.UTC);
         List<Memo> memos = memoRepository.findClassroomBundle(
                 classroomId, date.atStartOfDay(), date.plusDays(1).atStartOfDay());
         if (memos.isEmpty()) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "그 날짜에 작성된 메모가 없어요.");
         }
 
-        // 비식별화 컨텍스트(반 전체 명단) + 메모 인덱스 입력 구성
         RestorationContext ctx = deidentifier.newContext(rosterNames(classroomId));
         List<MemoPromptInput> inputs = new ArrayList<>();
         Map<Integer, Long> indexToMemoId = new LinkedHashMap<>();
@@ -128,7 +147,6 @@ public class JournalService {
             index++;
         }
 
-        // 프롬프트 → AiClient(TX 밖) → 복원 → 파싱 → 검증(실패 시 1회 재요청)
         AiRequest aiRequest = new AiRequest(
                 promptTemplateLoader.journalSystemPrompt(),
                 promptTemplateLoader.renderMemos(inputs),
@@ -136,7 +154,6 @@ public class JournalService {
                 JOURNAL_MAX_TOKENS);
         JournalAnalysisResult result = analyzeWithRetry(aiRequest, ctx, indexToMemoId.keySet());
 
-        // 메모 영역 매핑(FR-2) + 평탄화 content
         Map<Long, CurriculumArea> memoIdToArea = new HashMap<>();
         for (JournalAnalysisResult.MemoArea ma : result.memoClassifications()) {
             Long memoId = indexToMemoId.get(ma.index());
@@ -145,14 +162,13 @@ public class JournalService {
             }
         }
         Map<String, String> content = contentSerializer.toFlatContent(result);
-        List<Long> memoIds = new ArrayList<>(indexToMemoId.values());
+        return new AnalysisOutcome(content, contentSerializer.toJson(content),
+                new ArrayList<>(indexToMemoId.values()), memoIdToArea, analyzedAt);
+    }
 
-        // 저장(REQUIRES_NEW)
-        PersistResult persisted = journalPersistService.save(
-                teacherId, classroomId, date, contentSerializer.toJson(content), memoIds, memoIdToArea);
-
-        return new JournalResponse(persisted.journalId(), classroomId, date, JournalStatus.DRAFT.name(),
-                content, persisted.analyzedAt(), persisted.linkedMemoIds());
+    private record AnalysisOutcome(Map<String, String> content, String contentJson,
+                                   List<Long> memoIds, Map<Long, CurriculumArea> memoIdToArea,
+                                   LocalDateTime analyzedAt) {
     }
 
     private List<String> rosterNames(Long classroomId) {
@@ -177,6 +193,41 @@ public class JournalService {
         JournalAnalysisResult result = journalResultParser.parse(ctx.restore(raw)); // 복원 후 파싱
         outputValidator.validate(result, expectedIndices);
         return result;
+    }
+
+    /** [12] 반·날짜 일지 조회 + 재분석 안내(FR-6). 없으면 JOURNAL_NOT_FOUND. AI 미사용. */
+    @Transactional(readOnly = true)
+    public JournalListResponse getByClassroomAndDate(Long teacherId, Long classroomId, LocalDate date) {
+        DailyJournal journal = dailyJournalRepository
+                .findByTeacherIdAndClassroomIdAndJournalDate(teacherId, classroomId, date)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOURNAL_NOT_FOUND));
+
+        // 분석 이후 추가된 메모 식별(memo.createdAt > journal.analyzedAt)
+        List<Long> newMemoIds = memoRepository.findClassroomBundle(
+                        classroomId, date.atStartOfDay(), date.plusDays(1).atStartOfDay())
+                .stream()
+                .filter(memo -> journal.getAnalyzedAt() != null && memo.getCreatedAt().isAfter(journal.getAnalyzedAt()))
+                .map(Memo::getId)
+                .toList();
+
+        return new JournalListResponse(journal.getId(), journal.getClassroomId(), journal.getJournalDate(),
+                journal.getStatus().name(), contentSerializer.toMap(journal.getContent()), journal.getAnalyzedAt(),
+                !newMemoIds.isEmpty(), newMemoIds);
+    }
+
+    /** [15] 재분석·덮어쓰기(FR-6) — 같은 행 UPDATE + 링크 재구성. 사용자당 동시 1건 가드. */
+    public JournalResponse reanalyze(Long teacherId, Long journalId) {
+        return analysisGuard.runExclusively(teacherId, () -> doReanalyze(teacherId, journalId));
+    }
+
+    private JournalResponse doReanalyze(Long teacherId, Long journalId) {
+        DailyJournal journal = findOwned(teacherId, journalId);
+        AnalysisOutcome outcome = runAnalysisPipeline(journal.getClassroomId(), journal.getJournalDate());
+        PersistResult persisted = journalPersistService.overwrite(
+                journal.getId(), outcome.contentJson(), outcome.memoIds(), outcome.memoIdToArea(),
+                outcome.analyzedAt());
+        return new JournalResponse(persisted.journalId(), journal.getClassroomId(), journal.getJournalDate(),
+                JournalStatus.DRAFT.name(), outcome.content(), persisted.analyzedAt(), persisted.linkedMemoIds());
     }
 
     /** [13] 단건 조회 — 본인 일지만(없으면 JOURNAL_NOT_FOUND). AI 미사용. */

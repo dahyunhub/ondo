@@ -74,4 +74,12 @@ public class DailyJournal extends BaseTimeEntity {
         this.content = content;
         this.status = status;
     }
+
+    /** 재분석·덮어쓰기(FR-6). 새 AI 초안이므로 DRAFT 로 되돌리고 analyzedAt·version 을 갱신 → 재분석 안내 해소. */
+    public void reanalyze(String content, LocalDateTime analyzedAt) {
+        this.content = content;
+        this.status = JournalStatus.DRAFT;
+        this.analyzedAt = analyzedAt;
+        this.version += 1;
+    }
 }

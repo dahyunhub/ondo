@@ -13,4 +13,7 @@ public interface DailyJournalRepository extends JpaRepository<DailyJournal, Long
 
     /** 소유권 검증용(조회·수정) — 본인 일지만. 타 교사는 빈 결과 → JOURNAL_NOT_FOUND(존재 비노출). */
     Optional<DailyJournal> findByIdAndTeacherId(Long id, Long teacherId);
+
+    /** [12] 반·날짜 일지 단건 조회(재분석 안내용). 없으면 JOURNAL_NOT_FOUND. */
+    Optional<DailyJournal> findByTeacherIdAndClassroomIdAndJournalDate(Long teacherId, Long classroomId, LocalDate journalDate);
 }

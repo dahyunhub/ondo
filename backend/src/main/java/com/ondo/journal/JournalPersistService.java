@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -45,8 +44,7 @@ public class JournalPersistService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public PersistResult save(Long teacherId, Long classroomId, LocalDate date, String contentJson,
-                              List<Long> memoIds, Map<Long, CurriculumArea> memoIdToArea) {
-        LocalDateTime analyzedAt = LocalDateTime.now(ZoneOffset.UTC);
+                              List<Long> memoIds, Map<Long, CurriculumArea> memoIdToArea, LocalDateTime analyzedAt) {
         DailyJournal journal;
         try {
             // saveAndFlush 로 UNIQUE(teacher,classroom,date) 위반을 여기서 잡아 계약 코드로 변환한다.
@@ -73,6 +71,34 @@ public class JournalPersistService {
             journalMemoLinkRepository.save(JournalMemoLink.of(journal.getId(), memoId));
         }
 
+        return new PersistResult(journal.getId(), journal.getAnalyzedAt(), linkedMemoIds);
+    }
+
+    /**
+     * 재분석 덮어쓰기(Story 3.7): 같은 daily_journal 행 UPDATE(content·DRAFT·analyzedAt) + journal_memo_link 재구성
+     * (기존 삭제 후 현재 active 묶음으로 재삽입) + 메모 영역 재분류. REQUIRES_NEW.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public PersistResult overwrite(Long journalId, String contentJson,
+                                   List<Long> memoIds, Map<Long, CurriculumArea> memoIdToArea, LocalDateTime analyzedAt) {
+        DailyJournal journal = dailyJournalRepository.findById(journalId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOURNAL_NOT_FOUND));
+        journal.reanalyze(contentJson, analyzedAt);
+
+        journalMemoLinkRepository.deleteByDailyJournalId(journalId); // 링크 재구성: 기존 삭제
+
+        Set<Long> activeIds = new HashSet<>();
+        for (Memo memo : memoRepository.findAllById(memoIds)) {
+            activeIds.add(memo.getId());
+            CurriculumArea area = memoIdToArea.get(memo.getId());
+            if (area != null) {
+                memo.changeCurriculumArea(area);
+            }
+        }
+        List<Long> linkedMemoIds = memoIds.stream().filter(activeIds::contains).toList();
+        for (Long memoId : linkedMemoIds) {
+            journalMemoLinkRepository.save(JournalMemoLink.of(journalId, memoId));
+        }
         return new PersistResult(journal.getId(), journal.getAnalyzedAt(), linkedMemoIds);
     }
 
