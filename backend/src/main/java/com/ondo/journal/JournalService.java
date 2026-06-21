@@ -13,6 +13,7 @@ import com.ondo.ai.prompt.PromptTemplateLoader;
 import com.ondo.child.ChildRepository;
 import com.ondo.child.domain.Child;
 import com.ondo.common.concurrency.AnalysisGuard;
+import com.ondo.common.time.AppTime;
 import com.ondo.common.exception.AiAnalysisException;
 import com.ondo.common.exception.BusinessException;
 import com.ondo.common.exception.ErrorCode;
@@ -128,7 +129,7 @@ public class JournalService {
         // (createdAt > analyzedAt) 판정에 잡혀 재분석 안내에서 누락되지 않는다(false negative 방지).
         LocalDateTime analyzedAt = LocalDateTime.now(ZoneOffset.UTC);
         List<Memo> memos = memoRepository.findClassroomBundle(
-                classroomId, date.atStartOfDay(), date.plusDays(1).atStartOfDay());
+                classroomId, AppTime.startOfDayUtc(date), AppTime.startOfNextDayUtc(date));
         if (memos.isEmpty()) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "그 날짜에 작성된 메모가 없어요.");
         }
@@ -204,7 +205,7 @@ public class JournalService {
 
         // 분석 이후 추가된 메모 식별(memo.createdAt > journal.analyzedAt)
         List<Long> newMemoIds = memoRepository.findClassroomBundle(
-                        classroomId, date.atStartOfDay(), date.plusDays(1).atStartOfDay())
+                        classroomId, AppTime.startOfDayUtc(date), AppTime.startOfNextDayUtc(date))
                 .stream()
                 .filter(memo -> journal.getAnalyzedAt() != null && memo.getCreatedAt().isAfter(journal.getAnalyzedAt()))
                 .map(Memo::getId)

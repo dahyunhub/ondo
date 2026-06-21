@@ -15,6 +15,7 @@ import com.ondo.child.domain.Child;
 import com.ondo.classroom.ClassroomRepository;
 import com.ondo.classroom.domain.Classroom;
 import com.ondo.common.concurrency.AnalysisGuard;
+import com.ondo.common.time.AppTime;
 import com.ondo.common.exception.AiAnalysisException;
 import com.ondo.common.exception.BusinessException;
 import com.ondo.common.exception.ErrorCode;
@@ -29,7 +30,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -92,15 +92,14 @@ public class ReportService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHILD_NOT_FOUND));
         Classroom classroom = ownedClassroom(child.getClassroomId(), teacherId, ErrorCode.CHILD_NOT_FOUND);
 
-        // 기간: 직전 평가 period_end+1일 ~ 당일, 없으면 반 start_date ~ 당일.
-        // createdAt 이 UTC 저장이므로 당일 경계도 UTC 로 잡아 누락 방지.
-        LocalDate periodEnd = LocalDate.now(ZoneOffset.UTC);
+        // 기간: 직전 평가 period_end+1일 ~ 당일(KST), 없으면 반 start_date ~ 당일.
+        LocalDate periodEnd = AppTime.today();
         LocalDate periodStart = childReportRepository.findTopByChildIdOrderByPeriodEndDesc(childId)
                 .map(r -> r.getPeriodEnd().plusDays(1))
                 .orElse(classroom.getStartDate());
 
         List<Memo> memos = memoRepository.findChildBundle(
-                childId, periodStart.atStartOfDay(), periodEnd.plusDays(1).atStartOfDay());
+                childId, AppTime.startOfDayUtc(periodStart), AppTime.startOfNextDayUtc(periodEnd));
         if (memos.isEmpty()) {
             throw new BusinessException(ErrorCode.REPORT_NO_MEMO);
         }
@@ -124,7 +123,7 @@ public class ReportService {
         LocalDate periodStart = month.atDay(1);
         LocalDate periodEnd = month.atEndOfMonth();
         List<Memo> memos = memoRepository.findChildBundle(
-                childId, periodStart.atStartOfDay(), periodEnd.plusDays(1).atStartOfDay());
+                childId, AppTime.startOfDayUtc(periodStart), AppTime.startOfNextDayUtc(periodEnd));
         if (memos.isEmpty()) {
             return MonthlyOutcome.SKIPPED_NO_MEMO; // 그달 메모 없는 아이 skip(throw 아님)
         }

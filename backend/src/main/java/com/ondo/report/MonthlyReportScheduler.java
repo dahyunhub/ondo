@@ -2,13 +2,13 @@ package com.ondo.report;
 
 import com.ondo.child.ChildRepository;
 import com.ondo.child.domain.Child;
+import com.ondo.common.time.AppTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.YearMonth;
-import java.time.ZoneOffset;
 
 /**
  * 월말 자동 개인평가 스케줄러(FR-9, ai-integration-spec §7). 반 전체 아이를 순차 순회하며 그달 평가를 생성한다.
@@ -29,10 +29,10 @@ public class MonthlyReportScheduler {
         this.reportService = reportService;
     }
 
-    /** 매월 말일(기본 02:00 UTC) 실행. 주기는 ondo.report.monthly-cron 으로 override. */
-    @Scheduled(cron = "${ondo.report.monthly-cron:0 0 2 L * *}", zone = "UTC")
+    /** 매월 말일(기본 02:00 KST) 실행. 주기는 ondo.report.monthly-cron 으로 override. */
+    @Scheduled(cron = "${ondo.report.monthly-cron:0 0 2 L * *}", zone = "Asia/Seoul")
     public void scheduledRun() {
-        runForMonth(YearMonth.now(ZoneOffset.UTC));
+        runForMonth(AppTime.thisMonth());
     }
 
     /** 대상 월에 대해 전체 아이를 순회한다. 테스트·수동 트리거용 진입점. */

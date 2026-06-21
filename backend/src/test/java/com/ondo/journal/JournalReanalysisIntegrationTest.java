@@ -55,7 +55,7 @@ class JournalReanalysisIntegrationTest extends IntegrationTestSupport {
     @Autowired private JwtProvider jwtProvider;
     @Autowired private JournalIntegrationTest.StubAiClient stubAiClient;
 
-    private final LocalDate today = LocalDate.now(java.time.ZoneOffset.UTC);
+    private final LocalDate today = com.ondo.common.time.AppTime.today(); // KST 기준(백엔드 묶음 경계와 일치)
     private Long teacherAId;
     private String tokenA;
     private String tokenB;
