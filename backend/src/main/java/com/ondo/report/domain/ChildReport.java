@@ -63,4 +63,10 @@ public class ChildReport extends BaseTimeEntity {
     public static ChildReport createManual(Long childId, LocalDate periodStart, LocalDate periodEnd, String content) {
         return new ChildReport(childId, ReportType.MANUAL, periodStart, periodEnd, null, content);
     }
+
+    /** 월말 자동 생성(FR-9). report_month("yyyy-MM")로 UNIQUE(child_id, report_month) 멱등. 기간=그달 1일~말일. */
+    public static ChildReport createMonthly(Long childId, LocalDate periodStart, LocalDate periodEnd,
+                                            String reportMonth, String content) {
+        return new ChildReport(childId, ReportType.MONTHLY, periodStart, periodEnd, reportMonth, content);
+    }
 }

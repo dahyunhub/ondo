@@ -99,7 +99,12 @@ public class ReportService {
                 .map(r -> r.getPeriodEnd().plusDays(1))
                 .orElse(classroom.getStartDate());
 
-        ReportAnalysisResult result = runPipeline(child, classroom, periodStart, periodEnd);
+        List<Memo> memos = memoRepository.findChildBundle(
+                childId, periodStart.atStartOfDay(), periodEnd.plusDays(1).atStartOfDay());
+        if (memos.isEmpty()) {
+            throw new BusinessException(ErrorCode.REPORT_NO_MEMO);
+        }
+        ReportAnalysisResult result = runPipelineForMemos(child.getClassroomId(), memos);
         String json = contentSerializer.toJson(result);
         PersistResult persisted = reportPersistService.saveManual(childId, periodStart, periodEnd, json);
 
@@ -107,15 +112,32 @@ public class ReportService {
                 periodStart, periodEnd, null, contentSerializer.toContent(json), persisted.createdAt());
     }
 
-    /** 비식별화 → 프롬프트 → AiClient(TX 밖) → 복원·검증·1회 재요청. 기간 내 메모 0건 → REPORT_NO_MEMO. */
-    private ReportAnalysisResult runPipeline(Child child, Classroom classroom, LocalDate periodStart, LocalDate periodEnd) {
+    /** [FR-9] 월말 자동 평가 1건 생성. 시스템 잡이라 AnalysisGuard 없음(순차성은 스케줄러가 보장). */
+    public MonthlyOutcome createMonthly(Long childId, java.time.YearMonth month) {
+        String reportMonth = month.toString(); // "yyyy-MM"
+        if (childReportRepository.existsByChildIdAndReportMonth(childId, reportMonth)) {
+            return MonthlyOutcome.SKIPPED_EXISTS; // 멱등(재실행 안전) — AI 호출 전 차단
+        }
+        Child child = childRepository.findById(childId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHILD_NOT_FOUND));
+
+        LocalDate periodStart = month.atDay(1);
+        LocalDate periodEnd = month.atEndOfMonth();
         List<Memo> memos = memoRepository.findChildBundle(
-                child.getId(), periodStart.atStartOfDay(), periodEnd.plusDays(1).atStartOfDay());
+                childId, periodStart.atStartOfDay(), periodEnd.plusDays(1).atStartOfDay());
         if (memos.isEmpty()) {
-            throw new BusinessException(ErrorCode.REPORT_NO_MEMO);
+            return MonthlyOutcome.SKIPPED_NO_MEMO; // 그달 메모 없는 아이 skip(throw 아님)
         }
 
-        RestorationContext ctx = deidentifier.newContext(rosterNames(classroom.getId()));
+        ReportAnalysisResult result = runPipelineForMemos(child.getClassroomId(), memos);
+        reportPersistService.saveMonthly(childId, periodStart, periodEnd, reportMonth,
+                contentSerializer.toJson(result));
+        return MonthlyOutcome.CREATED;
+    }
+
+    /** 비식별화 → 프롬프트 → AiClient(TX 밖) → 복원·검증·1회 재요청. 호출 전 비어있지 않은 메모 묶음 전제(manual은 throw, monthly는 skip). */
+    private ReportAnalysisResult runPipelineForMemos(Long classroomId, List<Memo> memos) {
+        RestorationContext ctx = deidentifier.newContext(rosterNames(classroomId));
         List<MemoPromptInput> inputs = new ArrayList<>();
         int index = 1;
         for (Memo memo : memos) {

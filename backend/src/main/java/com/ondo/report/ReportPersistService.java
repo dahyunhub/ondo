@@ -29,6 +29,17 @@ public class ReportPersistService {
         return new PersistResult(report.getId(), report.getCreatedAt());
     }
 
+    /**
+     * 월말 자동 평가 저장(FR-9). 아이 1명 단위 독립 커밋(부분 성공 격리). UNIQUE(child_id, report_month) 위반 시
+     * DataIntegrityViolationException 이 전파되어 스케줄러 루프의 try-catch 가 해당 아이만 실패 처리한다.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void saveMonthly(Long childId, LocalDate periodStart, LocalDate periodEnd,
+                            String reportMonth, String contentJson) {
+        childReportRepository.save(
+                ChildReport.createMonthly(childId, periodStart, periodEnd, reportMonth, contentJson));
+    }
+
     public record PersistResult(Long reportId, LocalDateTime createdAt) {
     }
 }

@@ -41,6 +41,9 @@ ondo:
     model: ${AI_MODEL:gpt-4.1}
     timeout-seconds: ${AI_TIMEOUT_SECONDS:20}
     max-retries: ${AI_MAX_RETRIES:2}
+  report:
+    # 월말 자동 개인평가(FR-9) 실행 주기. Spring cron — L=말일. 기본 매월 말일 02:00(zone=UTC, 코드에서 지정).
+    monthly-cron: ${REPORT_MONTHLY_CRON:0 0 2 L * *}
 
 management:
   endpoints:

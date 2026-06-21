@@ -13,4 +13,7 @@ public interface ChildReportRepository extends JpaRepository<ChildReport, Long> 
 
     /** 기간 계산용: 직전 평가(period_end 최댓값). 없으면 empty → 반 start_date 사용. */
     Optional<ChildReport> findTopByChildIdOrderByPeriodEndDesc(Long childId);
+
+    /** 월말 자동 멱등(FR-9): 그달 평가가 이미 있으면 AI 호출 전에 skip. */
+    boolean existsByChildIdAndReportMonth(Long childId, String reportMonth);
 }
