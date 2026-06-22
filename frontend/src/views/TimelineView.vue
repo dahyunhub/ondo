@@ -110,7 +110,10 @@ onMounted(reload)
 
       <div class="right-pane">
         <p v-if="loading" class="muted">불러오는 중…</p>
-        <p v-else-if="error" class="err">{{ error }}</p>
+        <div v-else-if="error" class="err-box">
+          <p class="err">{{ error }}</p>
+          <button class="jr-btn jr-btn--secondary" @click="reload"><AppIcon name="swap" :size="18" /> 다시 시도</button>
+        </div>
         <div v-else-if="showEmpty" class="empty">
           <SproutLoader :size="92" />
           <div class="jr-h2" style="margin-top:18px">아직 기록이 없어요</div>
@@ -178,7 +181,10 @@ onMounted(reload)
 
       <div class="screen body">
         <p v-if="loading" class="muted">불러오는 중…</p>
-        <p v-else-if="error" class="err">{{ error }}</p>
+        <div v-else-if="error" class="err-box">
+          <p class="err">{{ error }}</p>
+          <button class="jr-btn jr-btn--secondary" @click="reload"><AppIcon name="swap" :size="18" /> 다시 시도</button>
+        </div>
         <div v-else-if="showEmpty" class="empty">
           <SproutLoader :size="92" />
           <div class="jr-h2" style="margin-top:18px">아직 기록이 없어요</div>
@@ -260,6 +266,7 @@ onMounted(reload)
 .sub b { color: var(--text); }
 .muted { color: var(--text-sub); }
 .err { color: var(--warn); font-weight: 600; }
+.err-box { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 8px 0; }
 .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 24px; min-height: 320px; }
 .empty-d { font-size: 16px; color: var(--text-sub); margin-top: 8px; line-height: 1.5; }
 .filter-bar { position: sticky; top: 0; background: var(--bg); padding-bottom: 12px; margin-bottom: 4px; z-index: 2; }
