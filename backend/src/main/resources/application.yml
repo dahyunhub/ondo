@@ -38,7 +38,7 @@ ondo:
     # 외부 LLM(OpenAI). 키·모델은 운영 시 env 주입. base-url 은 호스트만(경로는 코드에서 /v1/chat/completions).
     base-url: ${AI_BASE_URL:https://api.openai.com}
     api-key: ${AI_API_KEY:}
-    model: ${AI_MODEL:gpt-4.1}
+    model: ${AI_MODEL:gpt-5.4-mini}
     timeout-seconds: ${AI_TIMEOUT_SECONDS:20}
     max-retries: ${AI_MAX_RETRIES:2}
   report:
@@ -81,3 +81,13 @@ spring:
 logging:
   level:
     com.ondo: INFO
+
+# prod: 운영 정보 최소 노출 — health 만, 세부는 숨김.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

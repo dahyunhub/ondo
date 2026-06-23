@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  로깅 정책(Story 5.1).
+  - 컨테이너 친화: stdout(콘솔)로만 출력. Spring Boot 기본 패턴/색상 사용.
+  - NFR-1: 로그에 아이 실명·메모 본문·AI 원문을 남기지 않는다(코드 레벨에서 보장 — 예외 메시지·식별자만).
+  - 레벨: 공통 INFO, 운영 노이즈(Hibernate SQL 등)는 dev 에서만 상세.
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <springProfile name="dev">
+        <logger name="com.ondo" level="DEBUG"/>
+    </springProfile>
+
+    <springProfile name="prod">
+        <logger name="com.ondo" level="INFO"/>
+        <!-- 운영: 프레임워크 디버그 잡음 억제 -->
+        <logger name="org.hibernate.SQL" level="WARN"/>
+    </springProfile>
+</configuration>
