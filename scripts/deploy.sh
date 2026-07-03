@@ -8,19 +8,31 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."   # 저장소 루트
 
+# compose 와 동일한 포트/시크릿을 보도록 .env 를 셸에도 로드(헬스체크 URL·프로파일 일치).
+if [ -f .env ]; then set -a; . ./.env; set +a; fi
+
 # docker compose v2(plugin) / v1(legacy) 모두 지원
 if docker compose version >/dev/null 2>&1; then COMPOSE="docker compose"; else COMPOSE="docker-compose"; fi
 
-# .env 확인 — 시크릿 주입(없으면 compose 기본값으로 진행하되 경고)
+# .env 확인 — prod 는 시크릿 외부주입 필수(공개 기본값 운영 방지). dev 는 경고만.
+PROFILE="${SPRING_PROFILES_ACTIVE:-dev}"
 if [ ! -f .env ]; then
-  echo "⚠️  .env 가 없습니다. .env.example 을 복사해 시크릿을 채우는 것을 권장합니다(prod)."
+  if [ "$PROFILE" = "prod" ]; then
+    echo "❌ prod 배포에는 .env 가 필요합니다(JWT_SECRET·DB 비밀번호 등 시크릿 외부주입)."
+    echo "   cp .env.example .env 후 강한 시크릿으로 채워 주세요. (dev 데모는 SPRING_PROFILES_ACTIVE=dev)"
+    exit 1
+  fi
+  echo "⚠️  .env 가 없습니다(dev 기본값으로 진행). 운영은 .env 로 시크릿을 주입하세요."
 fi
 
 echo "▶ 1/4 최신 코드 pull"
 if [ "${SKIP_PULL:-0}" = "1" ]; then
   echo "  (SKIP_PULL=1 — 건너뜀)"
 else
-  git pull --ff-only
+  git pull --ff-only || {
+    echo "❌ git pull 실패(로컬 변경 또는 분기 불일치). 현재 트리로 배포하려면 SKIP_PULL=1 로 실행하세요."
+    exit 1
+  }
 fi
 
 echo "▶ 2/4 이미지 build"
@@ -45,6 +57,7 @@ until curl -fsS "$APP_URL" >/dev/null 2>&1; do
 done
 echo "  ✓ app UP"
 
+DEADLINE=$(( $(date +%s) + 180 ))   # web 용 예산 재설정(app 대기에 잠식되지 않도록)
 until curl -fsS "$WEB_URL" >/dev/null 2>&1; do
   if [ "$(date +%s)" -ge "$DEADLINE" ]; then
     echo "❌ 프론트(web) 헬스체크 실패($WEB_URL). 최근 로그:"
