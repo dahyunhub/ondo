@@ -76,6 +76,14 @@ public class Memo extends BaseTimeEntity {
         this.deletedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
+    /** 메모 내용 수정(FR-1). 자유 입력 + 3항목 재작성. 최소 1개 non-blank 불변식은 서비스에서 강제. */
+    public void editContent(String content, String playActivity, String interaction, String attitude) {
+        this.content = blankToNull(content);
+        this.playActivity = blankToNull(playActivity);
+        this.interaction = blankToNull(interaction);
+        this.attitude = blankToNull(attitude);
+    }
+
     /** 누리과정 영역 수정(FR-7, Story 2.3). 자동 분류 결과를 교사가 교정. */
     public void changeCurriculumArea(CurriculumArea area) {
         this.curriculumArea = area;

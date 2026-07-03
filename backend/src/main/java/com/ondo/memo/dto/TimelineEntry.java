@@ -17,13 +17,18 @@ public record TimelineEntry(
         Long id,
         LocalDate date,
         String content,
+        String playActivity,
+        String interaction,
+        String attitude,
+        String displayText,
         CurriculumArea curriculumArea,
         Instant createdAt
 ) {
 
     public static TimelineEntry from(Memo m) {
-        return new TimelineEntry(m.getId(), m.getCreatedAt().toLocalDate(), displayText(m),
-                m.getCurriculumArea(), m.getCreatedAt().toInstant(ZoneOffset.UTC));
+        return new TimelineEntry(m.getId(), m.getCreatedAt().toLocalDate(),
+                m.getContent(), m.getPlayActivity(), m.getInteraction(), m.getAttitude(),
+                displayText(m), m.getCurriculumArea(), m.getCreatedAt().toInstant(ZoneOffset.UTC));
     }
 
     /** 표시 텍스트: 자유 입력(content)이 있으면 그대로, 없으면 입력된 3항목을 합성. */

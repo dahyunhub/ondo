@@ -10,6 +10,7 @@ import AppIcon from '../components/AppIcon.vue'
 import NuriChip from '../components/NuriChip.vue'
 import SproutLoader from '../components/SproutLoader.vue'
 import ChildFormModal from '../components/ChildFormModal.vue'
+import MemoEditModal from '../components/MemoEditModal.vue'
 import ReportPanel from '../components/ReportPanel.vue'
 
 const route = useRoute()
@@ -26,6 +27,7 @@ const error = ref('')
 const filter = ref('ALL')
 const areaMenuFor = ref(null)
 const editChild = ref(false)
+const editMemo = ref(null)
 const patching = ref(false)
 
 async function loadChild() {
@@ -68,6 +70,8 @@ async function pickArea(memoId, areaEnum) {
 }
 function onChildSaved() { editChild.value = false; loadChild() }
 function onChildDeleted() { router.replace({ name: 'children' }) }
+async function onMemoSaved() { editMemo.value = null; areaMenuFor.value = null; try { await loadTimeline() } catch (e) { error.value = e.message } }
+async function onMemoDeleted() { editMemo.value = null; areaMenuFor.value = null; try { await loadTimeline() } catch (e) { error.value = e.message } }
 
 const pad = (n) => String(n).padStart(2, '0')
 function fmtTime(iso) { if (!iso) return ''; const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}` }
@@ -142,13 +146,14 @@ onMounted(reload)
                 <div v-for="e in g.items" :key="e.id" class="block" :style="{ '--strip': areaMeta(e.curriculumArea).color }" :class="{ open: areaMenuFor === e.id }">
                   <div class="block-top">
                     <NuriChip :area="e.curriculumArea" />
-                    <button class="area-edit" :class="{ uncat: !e.curriculumArea }" @click="areaMenuFor = areaMenuFor === e.id ? null : e.id">
+                    <button class="area-edit" :class="{ uncat: !e.curriculumArea }" @click="areaMenuFor = areaMenuFor === e.id ? null : e.id" aria-label="누리과정 영역 지정">
                       <template v-if="!e.curriculumArea">영역 지정 <AppIcon name="chevD" :size="13" :stroke="2.4" /></template>
-                      <AppIcon v-else name="pencil" :size="13" />
+                      <AppIcon v-else name="chevD" :size="13" :stroke="2.4" />
                     </button>
                     <span class="time">{{ fmtTime(e.createdAt) }}</span>
+                    <button class="memo-edit" @click="editMemo = e" aria-label="메모 수정·삭제"><AppIcon name="pencil" :size="15" /></button>
                   </div>
-                  <div class="content">{{ e.content }}</div>
+                  <div class="content">{{ e.displayText }}</div>
                   <div v-if="areaMenuFor === e.id" class="menu">
                     <div class="menu-title">누리과정 영역 지정</div>
                     <button v-for="a in AREA_ORDER" :key="a" class="menu-item" :class="{ on: e.curriculumArea === a }" :disabled="patching" @click="pickArea(e.id, a)">
@@ -213,13 +218,14 @@ onMounted(reload)
                 <div v-for="e in g.items" :key="e.id" class="block" :style="{ '--strip': areaMeta(e.curriculumArea).color }" :class="{ open: areaMenuFor === e.id }">
                   <div class="block-top">
                     <NuriChip :area="e.curriculumArea" />
-                    <button class="area-edit" :class="{ uncat: !e.curriculumArea }" @click="areaMenuFor = areaMenuFor === e.id ? null : e.id">
+                    <button class="area-edit" :class="{ uncat: !e.curriculumArea }" @click="areaMenuFor = areaMenuFor === e.id ? null : e.id" aria-label="누리과정 영역 지정">
                       <template v-if="!e.curriculumArea">영역 지정 <AppIcon name="chevD" :size="13" :stroke="2.4" /></template>
-                      <AppIcon v-else name="pencil" :size="13" />
+                      <AppIcon v-else name="chevD" :size="13" :stroke="2.4" />
                     </button>
                     <span class="time">{{ fmtTime(e.createdAt) }}</span>
+                    <button class="memo-edit" @click="editMemo = e" aria-label="메모 수정·삭제"><AppIcon name="pencil" :size="15" /></button>
                   </div>
-                  <div class="content">{{ e.content }}</div>
+                  <div class="content">{{ e.displayText }}</div>
                   <div v-if="areaMenuFor === e.id" class="menu">
                     <div class="menu-title">누리과정 영역 지정</div>
                     <button v-for="a in AREA_ORDER" :key="a" class="menu-item" :class="{ on: e.curriculumArea === a }" :disabled="patching" @click="pickArea(e.id, a)">
@@ -240,6 +246,7 @@ onMounted(reload)
     <div v-if="areaMenuFor !== null" class="menu-backdrop" @click="areaMenuFor = null" />
 
     <ChildFormModal v-if="editChild && child" mode="edit" :child="child" @close="editChild = false" @saved="onChildSaved" @deleted="onChildDeleted" />
+    <MemoEditModal v-if="editMemo" :memo="editMemo" @close="editMemo = null" @saved="onMemoSaved" @deleted="onMemoDeleted" />
   </div>
 </template>
 
@@ -284,6 +291,8 @@ onMounted(reload)
 .area-edit { display: flex; align-items: center; gap: 3px; border: none; background: transparent; border-radius: 999px; padding: 4px 6px; cursor: pointer; font-family: inherit; font-size: 11.5px; font-weight: 700; color: var(--text-faint); }
 .area-edit.uncat { background: var(--brand-100); color: var(--brand-700); padding: 4px 9px; }
 .time { margin-left: auto; font-size: 12px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.memo-edit { display: flex; align-items: center; justify-content: center; border: none; background: transparent; border-radius: 999px; width: 26px; height: 26px; cursor: pointer; color: var(--text-faint); flex: 0 0 auto; }
+.memo-edit:hover { background: var(--surface-soft); color: var(--text-sub); }
 .content { font-size: 14.5px; line-height: 1.55; }
 .menu { position: absolute; top: 100%; right: 0; margin-top: 6px; z-index: 12; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow-lg); border: 1px solid var(--hair); padding: 8px; width: 200px; }
 .menu-title { font-size: 11.5px; font-weight: 800; color: var(--text-faint); padding: 4px 8px 8px; }

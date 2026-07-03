@@ -1,6 +1,7 @@
 package com.ondo.memo;
 
 import com.ondo.memo.dto.CurriculumAreaRequest;
+import com.ondo.memo.dto.MemoContentRequest;
 import com.ondo.memo.dto.MemoRequest;
 import com.ondo.memo.dto.MemoResponse;
 import jakarta.validation.Valid;
@@ -29,6 +30,13 @@ public class MemoController {
     public ResponseEntity<MemoResponse> create(@AuthenticationPrincipal Long teacherId,
                                                @Valid @RequestBody MemoRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(memoService.save(teacherId, request));
+    }
+
+    @PatchMapping("/{memoId}")
+    public MemoResponse updateContent(@AuthenticationPrincipal Long teacherId,
+                                      @PathVariable Long memoId,
+                                      @Valid @RequestBody MemoContentRequest request) {
+        return memoService.updateContent(teacherId, memoId, request);
     }
 
     @PatchMapping("/{memoId}/curriculum-area")

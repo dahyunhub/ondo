@@ -43,6 +43,7 @@ class MemoIntegrationTest extends IntegrationTestSupport {
     @PersistenceContext private EntityManager em;
 
     private String tokenA;
+    private String tokenB;
     private Long childAId;   // 교사A 소유
     private Long childBId;   // 교사B 소유 (소유권 테스트)
 
@@ -55,6 +56,7 @@ class MemoIntegrationTest extends IntegrationTestSupport {
         childAId = childRepository.save(Child.create(clsA, "김민준", LocalDate.of(2021, 1, 1), Gender.MALE, "아이A")).getId();
         childBId = childRepository.save(Child.create(clsB, "남의아이", LocalDate.of(2021, 1, 1), Gender.MALE, "아이A")).getId();
         tokenA = jwtProvider.createToken(a.getId(), a.getEmail());
+        tokenB = jwtProvider.createToken(b.getId(), b.getEmail());
     }
 
     @Test
@@ -112,6 +114,51 @@ class MemoIntegrationTest extends IntegrationTestSupport {
         em.clear();
 
         mockMvc.perform(delete("/api/v1/memos/{id}", memoId).header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("MEMO_NOT_FOUND"));
+    }
+
+    @Test
+    void 메모_내용_수정_200_그리고_타임라인에_반영() throws Exception {
+        var result = mockMvc.perform(post("/api/v1/memos").header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"childId\":" + childAId + ",\"content\":\"오타 있는 원본\",\"playActivity\":\"블록\"}"))
+                .andExpect(status().isCreated()).andReturn();
+        long memoId = objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
+
+        mockMvc.perform(patch("/api/v1/memos/{id}", memoId).header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"수정된 내용\",\"interaction\":\"친구와 대화\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").value("수정된 내용"))
+                .andExpect(jsonPath("$.interaction").value("친구와 대화"))
+                .andExpect(jsonPath("$.playActivity").doesNotExist());   // null 로 재작성됨
+
+        em.flush();
+        em.clear();
+
+        mockMvc.perform(get("/api/v1/children/{id}/timeline", childAId).header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].content").value("수정된 내용"))
+                .andExpect(jsonPath("$[0].interaction").value("친구와 대화"));
+    }
+
+    @Test
+    void 메모_내용_전부_비우면_400_MEMO_EMPTY() throws Exception {
+        long id = createMemo("원본");
+        mockMvc.perform(patch("/api/v1/memos/{id}", id).header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"   \",\"playActivity\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("MEMO_EMPTY"));
+    }
+
+    @Test
+    void 타_교사_메모_내용_수정은_404_MEMO_NOT_FOUND() throws Exception {
+        long id = createMemo("교사A 메모");
+        mockMvc.perform(patch("/api/v1/memos/{id}", id).header("Authorization", "Bearer " + tokenB)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"남의 메모 수정\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("MEMO_NOT_FOUND"));
     }

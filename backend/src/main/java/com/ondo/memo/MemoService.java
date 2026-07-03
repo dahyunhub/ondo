@@ -7,6 +7,7 @@ import com.ondo.common.exception.BusinessException;
 import com.ondo.common.exception.ErrorCode;
 import com.ondo.memo.domain.CurriculumArea;
 import com.ondo.memo.domain.Memo;
+import com.ondo.memo.dto.MemoContentRequest;
 import com.ondo.memo.dto.MemoRequest;
 import com.ondo.memo.dto.MemoResponse;
 import com.ondo.memo.dto.TimelineEntry;
@@ -69,6 +70,19 @@ public class MemoService {
                 .filter(m -> m.getTeacherId().equals(teacherId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMO_NOT_FOUND));
         memo.changeCurriculumArea(area);
+        return MemoResponse.from(memo);
+    }
+
+    /** 메모 내용 수정(FR-1). 소유 교사만. 최소 1개 non-blank 불변식 유지. */
+    @Transactional
+    public MemoResponse updateContent(Long teacherId, Long memoId, MemoContentRequest req) {
+        if (allBlank(req.content(), req.playActivity(), req.interaction(), req.attitude())) {
+            throw new BusinessException(ErrorCode.MEMO_EMPTY);
+        }
+        Memo memo = memoRepository.findById(memoId)
+                .filter(m -> m.getTeacherId().equals(teacherId))
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMO_NOT_FOUND));
+        memo.editContent(req.content(), req.playActivity(), req.interaction(), req.attitude());
         return MemoResponse.from(memo);
     }
 
