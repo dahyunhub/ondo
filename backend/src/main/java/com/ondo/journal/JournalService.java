@@ -25,6 +25,7 @@ import com.ondo.journal.dto.JournalAnalyzeRequest;
 import com.ondo.journal.dto.JournalDetailResponse;
 import com.ondo.journal.dto.JournalListResponse;
 import com.ondo.journal.dto.JournalResponse;
+import com.ondo.journal.dto.JournalSummaryResponse;
 import com.ondo.journal.dto.JournalUpdateRequest;
 import com.ondo.memo.MemoRepository;
 import com.ondo.memo.domain.CurriculumArea;
@@ -214,6 +215,18 @@ public class JournalService {
         return new JournalListResponse(journal.getId(), journal.getClassroomId(), journal.getJournalDate(),
                 journal.getStatus().name(), contentSerializer.toMap(journal.getContent()), journal.getAnalyzedAt(),
                 !newMemoIds.isEmpty(), newMemoIds);
+    }
+
+    /** [12b] 반의 모든 일지 목록(최신순) — 소유권 검증 후 요약 스니펫과 함께 반환. AI 미사용. */
+    @Transactional(readOnly = true)
+    public List<JournalSummaryResponse> listByClassroom(Long teacherId, Long classroomId) {
+        classroomRepository.findByIdAndTeacherId(classroomId, teacherId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CLASSROOM_NOT_FOUND));
+        return dailyJournalRepository.findByTeacherIdAndClassroomIdOrderByJournalDateDesc(teacherId, classroomId)
+                .stream()
+                .map(j -> new JournalSummaryResponse(j.getId(), j.getJournalDate(), j.getStatus().name(),
+                        contentSerializer.toMap(j.getContent()).getOrDefault("summary", ""), j.getAnalyzedAt()))
+                .toList();
     }
 
     /** [15] 재분석·덮어쓰기(FR-6) — 같은 행 UPDATE + 링크 재구성. 사용자당 동시 1건 가드. */

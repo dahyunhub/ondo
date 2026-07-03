@@ -4,6 +4,7 @@ import com.ondo.journal.dto.JournalAnalyzeRequest;
 import com.ondo.journal.dto.JournalDetailResponse;
 import com.ondo.journal.dto.JournalListResponse;
 import com.ondo.journal.dto.JournalResponse;
+import com.ondo.journal.dto.JournalSummaryResponse;
 import com.ondo.journal.dto.JournalUpdateRequest;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 일지 API(Epic 3). 정본: api-spec §5.
@@ -47,6 +49,13 @@ public class JournalController {
                                                      @RequestParam Long classroomId,
                                                      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return journalService.getByClassroomAndDate(teacherId, classroomId, date);
+    }
+
+    /** [12b] 반의 모든 일지 목록(최신순) — 200. */
+    @GetMapping("/list")
+    public List<JournalSummaryResponse> listByClassroom(@AuthenticationPrincipal Long teacherId,
+                                                        @RequestParam Long classroomId) {
+        return journalService.listByClassroom(teacherId, classroomId);
     }
 
     /** [15] 재분석·덮어쓰기(FR-6) — 200. */

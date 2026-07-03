@@ -4,7 +4,7 @@
 // 한 아이 분석(A·개인평가, Epic 4)은 아이별 화면(타임라인)에 있어 아이 목록으로 보낸다.
 // 허브의 최근 목록은 '오늘 일지' 단건만 노출한다(MVP, 옵션 A).
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { api, ApiError } from '../lib/api'
 import { session } from '../stores/session'
 import { useViewport } from '../lib/useViewport'
@@ -15,6 +15,7 @@ import SproutLoader from '../components/SproutLoader.vue'
 
 const { isDesktop } = useViewport()
 const router = useRouter()
+const route = useRoute()
 const classroomId = session.classroom?.id
 
 // 한 아이 분석(개인평가)은 아이별 화면(타임라인)에 있다 → 아이 목록에서 선택.
@@ -27,6 +28,19 @@ function isoToday() {
 }
 const todayIso = isoToday()
 const todayLabel = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())
+function fmtDateLabel(iso) {
+  return new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date(iso))
+}
+
+// 지금까지 만든 일지 전체 목록(최신순).
+const journals = ref([])
+async function loadJournals() {
+  try {
+    journals.value = await api.get(`/journals/list?classroomId=${classroomId}`)
+  } catch (e) {
+    // 비치명적: 목록을 못 불러오면 빈 상태로 둔다.
+  }
+}
 
 // 화면 상태: hub | loading | draft | busy | error
 const view = ref('hub')
@@ -59,11 +73,28 @@ function showToast(msg) {
 function setJournal(j) {
   journal.value = {
     id: j.id,
+    journalDate: j.journalDate,
     status: j.status,
     content: j.content || {},
     analyzedAt: j.analyzedAt,
     reanalysisNeeded: j.reanalysisNeeded ?? false,
     newMemoIds: j.newMemoIds ?? [],
+  }
+}
+const journalDateLabel = computed(() =>
+  journal.value?.journalDate ? fmtDateLabel(journal.value.journalDate) : todayLabel)
+
+// 목록에서 임의 일지 열기. 오늘 일지면 그대로, 아니면 단건 상세를 불러온다.
+async function openJournal(item) {
+  if (journal.value && journal.value.id === item.id) { openDraft(); return }
+  try {
+    const res = await api.get(`/journals/${item.id}`)
+    setJournal(res)
+    editing.value = false
+    view.value = 'draft'
+  } catch (e) {
+    errorMsg.value = e instanceof ApiError ? e.message : '일지를 불러오지 못했어요.'
+    view.value = 'error'
   }
 }
 
@@ -175,9 +206,16 @@ async function confirmJournal() {
   }
 }
 
-function backToHub() { view.value = 'hub'; editing.value = false }
+function backToHub() { view.value = 'hub'; editing.value = false; loadJournals() }
 
-onMounted(loadExisting)
+onMounted(async () => {
+  await Promise.all([loadExisting(), loadJournals()])
+  // 홈에서 특정 일지로 진입(?journalId=)한 경우 바로 열기.
+  const qid = Number(route.query.journalId)
+  if (Number.isInteger(qid) && qid > 0) {
+    await openJournal({ id: qid })
+  }
+})
 onBeforeUnmount(() => clearTimeout(toastTimer))
 </script>
 
@@ -217,16 +255,18 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
           </button>
         </div>
 
-        <div class="recent-h"><span class="jr-h2" :style="isDesktop ? '' : 'font-size:18px'">최근 만든 일지</span></div>
-        <button v-if="journal" class="recent-card" @click="openDraft">
-          <span class="rc-ic"><AppIcon name="journal" :size="22" /></span>
-          <div class="rc-body">
-            <div class="rc-t">오늘 하루 일지</div>
-            <div class="rc-d">{{ todayLabel }}</div>
-          </div>
-          <span class="rc-status" :class="isConfirmed ? 'on' : ''">{{ isConfirmed ? '확정' : 'AI 초안' }}</span>
-          <AppIcon name="chevR" :size="20" />
-        </button>
+        <div class="recent-h"><span class="jr-h2" :style="isDesktop ? '' : 'font-size:18px'">지금까지 만든 일지</span></div>
+        <div v-if="journals.length" class="journal-list">
+          <button v-for="j in journals" :key="j.id" class="recent-card" @click="openJournal(j)">
+            <span class="rc-ic"><AppIcon name="journal" :size="22" /></span>
+            <div class="rc-body">
+              <div class="rc-t">{{ fmtDateLabel(j.journalDate) }}</div>
+              <div class="rc-d">{{ j.summary || '요약 없음' }}</div>
+            </div>
+            <span class="rc-status" :class="j.status === 'CONFIRMED' ? 'on' : ''">{{ j.status === 'CONFIRMED' ? '확정' : 'AI 초안' }}</span>
+            <AppIcon name="chevR" :size="20" />
+          </button>
+        </div>
         <div v-else class="recent-empty">
           <AppIcon name="journal" :size="26" style="color:var(--text-faint)" />
           <div class="re-t">아직 만든 일지가 없어요</div>
@@ -276,7 +316,7 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
         <button class="back-btn" @click="backToHub"><AppIcon name="back" :size="24" /></button>
         <div>
           <div class="jr-h1" :style="isDesktop ? '' : 'font-size:21px'">하루 일지</div>
-          <div class="dh-sub">{{ todayLabel }} · {{ session.classroom?.name }} · {{ isConfirmed ? '확정됨' : 'AI 초안' }}</div>
+          <div class="dh-sub">{{ journalDateLabel }} · {{ session.classroom?.name }} · {{ isConfirmed ? '확정됨' : 'AI 초안' }}</div>
         </div>
       </div>
 
@@ -379,9 +419,11 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
   border-radius: var(--r-card); background: var(--surface); border: 1.5px solid var(--hair); box-shadow: var(--shadow-sm); font-family: inherit; text-align: left;
 }
 .rc-ic { width: 42px; height: 42px; border-radius: 12px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: var(--brand-100); color: var(--brand-700); }
+.journal-list { display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
+.journal-list .recent-card { margin: 0; }
 .rc-body { flex: 1; min-width: 0; }
 .rc-t { font-size: 15px; font-weight: 800; }
-.rc-d { font-size: 12.5px; color: var(--text-sub); margin-top: 2px; }
+.rc-d { font-size: 12.5px; color: var(--text-sub); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rc-status { font-size: 11.5px; font-weight: 800; padding: 4px 10px; border-radius: 999px; background: var(--surface-soft); color: var(--text-faint); white-space: nowrap; }
 .rc-status.on { background: var(--brand-100); color: var(--brand-700); }
 

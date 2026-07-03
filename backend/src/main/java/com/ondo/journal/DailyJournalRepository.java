@@ -4,9 +4,13 @@ import com.ondo.journal.domain.DailyJournal;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface DailyJournalRepository extends JpaRepository<DailyJournal, Long> {
+
+    /** [12b] 반의 모든 일지 목록(최신순) — 본인 것만. 홈·허브의 "지금까지 만든 일지" 리스트용. */
+    List<DailyJournal> findByTeacherIdAndClassroomIdOrderByJournalDateDesc(Long teacherId, Long classroomId);
 
     /** 일지 1건 유일성(UNIQUE teacher_id, classroom_id, journal_date) 검사. 이미 있으면 JOURNAL_ALREADY_EXISTS. */
     boolean existsByTeacherIdAndClassroomIdAndJournalDate(Long teacherId, Long classroomId, LocalDate journalDate);

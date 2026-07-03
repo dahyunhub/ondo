@@ -1,5 +1,7 @@
 <script setup>
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { api } from '../lib/api'
 import { auth } from '../stores/auth'
 import { session } from '../stores/session'
 import { useViewport } from '../lib/useViewport'
@@ -14,6 +16,16 @@ const shortTeacher = teacherName.length > 2 ? teacherName.slice(1) : teacherName
 const today = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())
 
 function go(name) { router.push({ name }) }
+
+// 지금까지 만든 일지(최신순) — 클릭 시 일지 페이지에서 해당 일지 열기.
+const journals = ref([])
+function fmtDate(iso) { return new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric' }).format(new Date(iso)) }
+function openJournal(id) { router.push({ name: 'journal', query: { journalId: id } }) }
+onMounted(async () => {
+  const cid = session.classroom?.id
+  if (!cid) return
+  try { journals.value = await api.get(`/journals/list?classroomId=${cid}`) } catch (e) { /* 비치명적 */ }
+})
 </script>
 
 <template>
@@ -40,6 +52,20 @@ function go(name) { router.push({ name }) }
           <span class="action-tx"><span class="t">아이들 관리</span><span class="d">명단 · 등록 · 수정 · 타임라인</span></span>
           <AppIcon name="chevR" :size="22" />
         </button>
+
+        <div class="sec-title" style="margin-top:28px"><span class="jr-h2">지금까지 만든 일지</span></div>
+        <div v-if="journals.length" class="jlist">
+          <button v-for="j in journals" :key="j.id" class="jrow" @click="openJournal(j.id)">
+            <span class="jrow-ic"><AppIcon name="journal" :size="20" /></span>
+            <span class="jrow-body">
+              <span class="jrow-t">{{ fmtDate(j.journalDate) }}</span>
+              <span class="jrow-d">{{ j.summary || '요약 없음' }}</span>
+            </span>
+            <span class="jrow-st" :class="j.status === 'CONFIRMED' ? 'on' : ''">{{ j.status === 'CONFIRMED' ? '확정' : '초안' }}</span>
+            <AppIcon name="chevR" :size="18" />
+          </button>
+        </div>
+        <div v-else class="jempty">아직 만든 일지가 없어요. 오늘 메모로 첫 일지를 만들어 보세요.</div>
       </div>
 
       <div class="col-side">
@@ -96,6 +122,20 @@ function go(name) { router.push({ name }) }
         <AppIcon name="chevR" :size="22" />
       </button>
 
+      <div class="soon-label">지금까지 만든 일지</div>
+      <div v-if="journals.length" class="jlist">
+        <button v-for="j in journals" :key="j.id" class="jrow" @click="openJournal(j.id)">
+          <span class="jrow-ic"><AppIcon name="journal" :size="20" /></span>
+          <span class="jrow-body">
+            <span class="jrow-t">{{ fmtDate(j.journalDate) }}</span>
+            <span class="jrow-d">{{ j.summary || '요약 없음' }}</span>
+          </span>
+          <span class="jrow-st" :class="j.status === 'CONFIRMED' ? 'on' : ''">{{ j.status === 'CONFIRMED' ? '확정' : '초안' }}</span>
+          <AppIcon name="chevR" :size="18" />
+        </button>
+      </div>
+      <div v-else class="jempty">아직 만든 일지가 없어요.<br>오늘 메모로 첫 일지를 만들어 보세요.</div>
+
       <div class="soon-label">AI 분석</div>
       <div class="soon-grid">
         <button class="soon-mini act" @click="go('journal')">
@@ -135,6 +175,22 @@ function go(name) { router.push({ name }) }
 .action-tx { flex: 1; display: flex; flex-direction: column; }
 .action-tx .t { font-size: 16px; font-weight: 800; }
 .action-tx .d { font-size: 13px; color: var(--text-sub); font-weight: 600; margin-top: 2px; }
+
+/* 지금까지 만든 일지 리스트 */
+.jlist { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.jrow {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 16px; border-radius: 16px; cursor: pointer;
+  background: var(--surface); border: 1.5px solid var(--hair); box-shadow: var(--shadow-sm); font-family: inherit; text-align: left;
+  transition: border-color .12s, background .12s;
+}
+.jrow:hover { border-color: var(--brand-500); background: var(--brand-100); }
+.jrow-ic { width: 38px; height: 38px; border-radius: 12px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: var(--brand-100); color: var(--brand-700); }
+.jrow-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.jrow-t { font-size: 14.5px; font-weight: 800; color: var(--text); }
+.jrow-d { font-size: 12.5px; color: var(--text-sub); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jrow-st { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: var(--surface-soft); color: var(--text-faint); white-space: nowrap; flex: 0 0 auto; }
+.jrow-st.on { background: var(--brand-100); color: var(--brand-700); }
+.jempty { font-size: 13px; color: var(--text-faint); line-height: 1.5; padding: 18px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); margin-top: 12px; }
 
 /* 데스크톱 */
 .dt-head { display: flex; align-items: flex-end; margin-bottom: 28px; }
