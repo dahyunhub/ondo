@@ -45,4 +45,15 @@ public class Teacher extends BaseTimeEntity {
     public static Teacher create(String email, String passwordHash, String name) {
         return new Teacher(email, passwordHash, name);
     }
+
+    public void changeName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * @param passwordHash 반드시 BCrypt 등으로 해시된 값(평문 금지)
+     */
+    public void changePassword(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
 }

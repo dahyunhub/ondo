@@ -1,5 +1,5 @@
 <script setup>
-// 마이 — 프로필 · 반 전환 · 설정. (프로필수정/알림/내보내기/도움말은 추후)
+// 마이 — 프로필(이름·비밀번호 수정) · 반 전환 · 설정. (알림/내보내기/도움말은 추후)
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, ApiError } from '../lib/api'
@@ -64,6 +64,65 @@ async function onCropped(blob) {
   }
   setTimeout(() => (toast.value = ''), 1600)
 }
+function showToast(msg) { toast.value = msg; setTimeout(() => (toast.value = ''), 1600) }
+
+// 이름 수정 시트 — 성공 시 auth.updateTeacher 로 아바타·사이드바 즉시 반영.
+const editOpen = ref(false)
+const editName = ref('')
+const editErr = ref('')
+const editBusy = ref(false)
+function openEdit() {
+  editName.value = teacher.value.name || ''
+  editErr.value = ''
+  editOpen.value = true
+}
+// 요청 진행 중엔 닫기 무시 — "취소했는데 변경됨" 방지
+function closeEdit() { if (!editBusy.value) editOpen.value = false }
+async function saveName() {
+  if (editBusy.value) return
+  const name = editName.value.trim()
+  if (!name) { editErr.value = '이름을 입력해 주세요.'; return }
+  editBusy.value = true
+  try {
+    const res = await api.patch('/teachers/me', { name })
+    auth.updateTeacher({ name: res.name })
+    editOpen.value = false
+    showToast('이름을 변경했어요')
+  } catch (e) {
+    editErr.value = e instanceof ApiError ? e.message : '저장 중 문제가 발생했어요.'
+  } finally { editBusy.value = false }
+}
+
+// 비밀번호 변경 시트 — 현재 비밀번호 불일치(401)는 인라인 에러, 시트 유지.
+const pwOpen = ref(false)
+const pw = ref({ current: '', next: '', confirm: '' })
+const pwErr = ref('')
+const pwBusy = ref(false)
+function openPw() {
+  pw.value = { current: '', next: '', confirm: '' }
+  pwErr.value = ''
+  pwOpen.value = true
+}
+function closePw() { if (!pwBusy.value) pwOpen.value = false }
+async function savePassword() {
+  if (pwBusy.value) return
+  pwErr.value = ''
+  if (!pw.value.current) { pwErr.value = '현재 비밀번호를 입력해 주세요.'; return }
+  if (pw.value.next.length < 8) { pwErr.value = '새 비밀번호는 8자 이상이어야 해요.'; return }
+  // 서버 @MaxBytes(72)(BCrypt 한계)를 사전 검증 — 서버 400 의 범용 메시지보다 구체적으로 안내
+  if (new TextEncoder().encode(pw.value.next).length > 72) { pwErr.value = '새 비밀번호가 너무 길어요. 조금 줄여 주세요.'; return }
+  if (pw.value.next !== pw.value.confirm) { pwErr.value = '새 비밀번호가 서로 달라요.'; return }
+  pwBusy.value = true
+  try {
+    await api.post('/teachers/me/password', { currentPassword: pw.value.current, newPassword: pw.value.next })
+    pwOpen.value = false
+    pw.value = { current: '', next: '', confirm: '' }
+    showToast('비밀번호를 변경했어요')
+  } catch (e) {
+    pwErr.value = e instanceof ApiError ? e.message : '변경 중 문제가 발생했어요.'
+  } finally { pwBusy.value = false }
+}
+
 function logout() {
   auth.logout()
   session.clear()
@@ -90,7 +149,9 @@ onMounted(() => {})
           <div class="p-name" :class="{ big: isDesktop }">{{ teacherName }} 선생님</div>
           <div class="p-email">{{ teacherEmail || '—' }}</div>
         </div>
-        <button class="jr-btn jr-btn--secondary jr-btn--sm" @click="fileInput?.click()">사진 변경</button>
+        <button class="jr-btn jr-btn--secondary jr-btn--sm" @click="openEdit">
+          <AppIcon name="pencil" :size="15" :stroke="2.4" /> {{ isDesktop ? '프로필 수정' : '수정' }}
+        </button>
         <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="pickPhoto" />
       </div>
 
@@ -106,6 +167,11 @@ onMounted(() => {})
         <button class="row" @click="openSwitch">
           <AppIcon name="swap" :size="21" class="r-ic" />
           <div class="r-tx"><div class="r-label">반 전환하기</div><div class="r-sub">현재 {{ current?.name }} · {{ current?.year }}학년도</div></div>
+          <AppIcon name="chevR" :size="18" class="r-chev" />
+        </button>
+        <button class="row" @click="openPw">
+          <AppIcon name="lock" :size="21" class="r-ic" />
+          <div class="r-tx"><div class="r-label">비밀번호 변경</div></div>
           <AppIcon name="chevR" :size="18" class="r-chev" />
         </button>
         <button class="row" @click="notReady('알림 설정')">
@@ -158,6 +224,64 @@ onMounted(() => {})
       </div>
     </div>
 
+    <!-- 이름(프로필) 수정 시트 -->
+    <div v-if="editOpen" class="overlay" :class="{ dt: isDesktop }" @click.self="closeEdit">
+      <div class="sheet" :class="{ dt: isDesktop }">
+        <div class="sheet-top">
+          <div>
+            <div class="s-title">프로필 수정</div>
+            <div class="s-sub">이메일은 로그인 아이디라 바꿀 수 없어요</div>
+          </div>
+          <button class="close" @click="closeEdit"><AppIcon name="x" :size="18" /></button>
+        </div>
+        <div class="form">
+          <div>
+            <label class="jr-field-label">이름</label>
+            <input v-model="editName" class="jr-input" maxlength="100" placeholder="이름을 입력해 주세요" @keyup.enter="saveName" />
+          </div>
+          <div>
+            <label class="jr-field-label">이메일</label>
+            <input :value="teacherEmail" class="jr-input" disabled />
+          </div>
+          <p v-if="editErr" class="form-err">{{ editErr }}</p>
+          <button class="jr-btn jr-btn--primary" :disabled="editBusy" @click="saveName">
+            {{ editBusy ? '저장 중…' : '저장하기' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 비밀번호 변경 시트 -->
+    <div v-if="pwOpen" class="overlay" :class="{ dt: isDesktop }" @click.self="closePw">
+      <div class="sheet" :class="{ dt: isDesktop }">
+        <div class="sheet-top">
+          <div>
+            <div class="s-title">비밀번호 변경</div>
+            <div class="s-sub">새 비밀번호는 8자 이상이어야 해요</div>
+          </div>
+          <button class="close" @click="closePw"><AppIcon name="x" :size="18" /></button>
+        </div>
+        <div class="form">
+          <div>
+            <label class="jr-field-label">현재 비밀번호</label>
+            <input v-model="pw.current" class="jr-input" type="password" autocomplete="current-password" />
+          </div>
+          <div>
+            <label class="jr-field-label">새 비밀번호</label>
+            <input v-model="pw.next" class="jr-input" type="password" autocomplete="new-password" />
+          </div>
+          <div>
+            <label class="jr-field-label">새 비밀번호 확인</label>
+            <input v-model="pw.confirm" class="jr-input" type="password" autocomplete="new-password" @keyup.enter="savePassword" />
+          </div>
+          <p v-if="pwErr" class="form-err">{{ pwErr }}</p>
+          <button class="jr-btn jr-btn--primary" :disabled="pwBusy" @click="savePassword">
+            {{ pwBusy ? '변경 중…' : '변경하기' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <Transition name="fade">
       <div v-if="toast" class="toast-wrap" :class="{ dt: isDesktop }">
         <div class="jr-toast">{{ toast }}</div>
@@ -181,9 +305,9 @@ onMounted(() => {})
 .profile { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
 .me-col .profile { margin-bottom: 0; }
 .p-info { min-width: 0; flex: 1; }
-.p-name { font-size: 19px; font-weight: 700; white-space: nowrap; }
+.p-name { font-size: 19px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .p-name.big { font-size: 22px; }
-.p-email { font-size: 13.5px; color: var(--text-sub); white-space: nowrap; margin-top: 2px; }
+.p-email { font-size: 13.5px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
 
 .viewing { margin-bottom: 18px; font-size: 13px; font-weight: 700; line-height: 1.45; }
 .me-col .viewing { margin-bottom: 0; }
@@ -228,6 +352,11 @@ onMounted(() => {})
 .sw-sub { display: block; font-size: 12.5px; color: var(--text-sub); font-weight: 600; margin-top: 2px; white-space: nowrap; }
 .sw-view { font-size: 12.5px; font-weight: 800; color: var(--brand-700); flex: 0 0 auto; }
 .muted { color: var(--text-sub); }
+
+/* 프로필/비밀번호 수정 폼 */
+.form { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+.form .jr-input:disabled { color: var(--text-faint); cursor: not-allowed; }
+.form-err { font-size: 13px; font-weight: 700; color: var(--warn); }
 
 .toast-wrap { position: fixed; left: 20px; right: 20px; bottom: 110px; z-index: 40; display: flex; justify-content: center; }
 .toast-wrap.dt { left: 50%; right: auto; transform: translateX(-50%); bottom: 48px; }
