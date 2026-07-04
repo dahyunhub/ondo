@@ -197,8 +197,10 @@ onMounted(async () => {
 .dt-sub { font-size: 15px; color: var(--text-sub); margin-top: 6px; }
 .dt-head .jr-btn { margin-left: auto; }
 .grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 28px; align-items: start; }
+/* min-width:0 이 없으면 자식(nowrap 요약 텍스트)이 트랙을 밀어 오른쪽으로 넘친다 */
+.col-main { min-width: 0; }
 .sec-title { display: flex; align-items: center; margin-bottom: 14px; }
-.col-side { position: sticky; top: 40px; display: flex; flex-direction: column; gap: 18px; }
+.col-side { position: sticky; top: 40px; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
 .col-side .cta { margin: 0; padding: 22px 26px; }
 .col-side .cta-ic { width: 56px; height: 56px; }
 .col-side .cta-tx .t { font-size: 19px; }
