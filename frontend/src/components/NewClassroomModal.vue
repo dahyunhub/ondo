@@ -1,20 +1,53 @@
 <script setup>
-// 새 반 만들기 — 온보딩형 플로우. 반 이름·학년도 + 아이 한 명씩 입력.
-// 백엔드: POST /classrooms → POST /classrooms/{id}/children (아이마다).
-import { reactive, ref } from 'vue'
+// 새 반 만들기 — 온보딩형 플로우. 반 이름·학년도 + 아이 한 명씩 입력(사진 포함).
+// 백엔드: POST /classrooms → POST /classrooms/{id}/children (아이마다) → 사진 있으면 PUT /children/{id}/photo.
+import { reactive, ref, onBeforeUnmount } from 'vue'
 import { api, ApiError } from '../lib/api'
 import AppIcon from './AppIcon.vue'
+import Avatar from './Avatar.vue'
+import ImageCropper from './ImageCropper.vue'
 
 const emit = defineEmits(['close', 'created'])
 
 const nowYear = new Date().getFullYear()
 const form = reactive({ name: '', year: nowYear })
-const children = ref([{ name: '', birthDate: '', gender: 'MALE' }])
+
+// uid: v-for 안정 키 + 크롭 대상 추적용. 행 삭제/재정렬 시 인덱스가 밀려도 사진이 엉뚱한 아이에 붙지 않도록.
+let uidSeq = 0
+function newChild() { return { uid: ++uidSeq, name: '', birthDate: '', gender: 'MALE', photoBlob: null, photoPreview: '' } }
+
+const children = ref([newChild()])
 const saving = ref(false)
 const error = ref('')
 
-function addChild() { children.value.push({ name: '', birthDate: '', gender: 'MALE' }) }
-function removeChild(i) { children.value.splice(i, 1) }
+function addChild() { children.value.push(newChild()) }
+function removeChild(i) {
+  if (children.value[i].photoPreview) URL.revokeObjectURL(children.value[i].photoPreview)
+  children.value.splice(i, 1)
+}
+
+// 프로필 사진(크롭) — 대상 아이를 인덱스가 아닌 객체 참조로 추적(ImageCropper 단일 인스턴스 공유).
+const cropFile = ref(null)
+const cropTarget = ref(null)
+function pickFile(child, e) {
+  const f = e.target.files?.[0]
+  e.target.value = '' // 같은 파일 재선택 허용
+  if (f) { cropTarget.value = child; cropFile.value = f }
+}
+function onCropped(blob) {
+  const c = cropTarget.value
+  if (c) {
+    if (c.photoPreview) URL.revokeObjectURL(c.photoPreview)
+    c.photoBlob = blob
+    c.photoPreview = URL.createObjectURL(blob)
+  }
+  cropFile.value = null
+  cropTarget.value = null
+}
+
+onBeforeUnmount(() => {
+  for (const c of children.value) if (c.photoPreview) URL.revokeObjectURL(c.photoPreview)
+})
 
 async function submit() {
   error.value = ''
@@ -35,8 +68,13 @@ async function submit() {
     let failed = 0
     for (const c of filled) {
       try {
-        await api.post(`/classrooms/${classroom.id}/children`,
+        const created = await api.post(`/classrooms/${classroom.id}/children`,
           { name: c.name.trim(), birthDate: c.birthDate, gender: c.gender })
+        // 사진은 아이 생성 성공 후에만, 비치명적으로 업로드(실패해도 아이는 등록됨).
+        if (c.photoBlob) {
+          try { await api.putBinary(`/children/${created.id}/photo`, c.photoBlob, 'image/jpeg') }
+          catch (e) { console.warn(`아이 사진 업로드 실패(childId=${created.id})`, e) } // 비치명적: 아이는 등록됨
+        }
       } catch { failed += 1 }
     }
     emit('created', { classroom, total: filled.length, failed })
@@ -72,8 +110,14 @@ async function submit() {
           <span class="kids-note">나중에 추가해도 돼요</span>
         </div>
         <div class="kids">
-          <div v-for="(c, i) in children" :key="i" class="kid">
+          <div v-for="(c, i) in children" :key="c.uid" class="kid">
             <div class="kid-line">
+              <label class="kid-photo" aria-label="아이 사진 추가">
+                <img v-if="c.photoPreview" class="kid-photo-img" :src="c.photoPreview" alt="미리보기" />
+                <Avatar v-else :name="c.name" size="sm" />
+                <span class="kid-cam"><AppIcon name="plus" :size="11" :stroke="2.8" /></span>
+                <input type="file" accept="image/*" class="file-hidden" @change="pickFile(c, $event)" />
+              </label>
               <input v-model="c.name" class="jr-input" placeholder="이름" />
               <button class="kid-x" @click="removeChild(i)" aria-label="삭제"><AppIcon name="x" :size="16" /></button>
             </div>
@@ -95,6 +139,8 @@ async function submit() {
         <template v-else>만드는 중…</template>
       </button>
     </div>
+
+    <ImageCropper v-if="cropFile" :file="cropFile" @cropped="onCropped" @close="cropFile = null; cropTarget = null" />
   </div>
 </template>
 
@@ -115,8 +161,12 @@ async function submit() {
 .kids { display: flex; flex-direction: column; gap: 12px; }
 .kid { background: var(--surface-soft); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 .kid-line { display: flex; gap: 8px; align-items: center; }
-.kid-line .jr-input { flex: 1; }
+.kid-line .jr-input { flex: 1; min-width: 0; }
 .kid-x { border: none; background: transparent; color: var(--text-faint); cursor: pointer; flex: 0 0 auto; padding: 6px; }
+.file-hidden { display: none; }
+.kid-photo { position: relative; flex: 0 0 auto; border: none; background: transparent; padding: 0; cursor: pointer; line-height: 0; }
+.kid-photo-img, .kid-photo :deep(.jr-avatar) { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; display: block; font-size: 15px; }
+.kid-cam { position: absolute; right: -3px; bottom: -3px; width: 17px; height: 17px; border-radius: 50%; background: var(--brand-500); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--surface-soft); }
 .sex { display: flex; gap: 6px; flex: 0 0 auto; }
 .sex .jr-toggle { cursor: pointer; padding: 8px 12px; }
 .add-kid { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 11px; border: 1.5px dashed var(--hair-strong); border-radius: 12px; background: transparent; color: var(--text-sub); cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 700; }
