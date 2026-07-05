@@ -11,7 +11,8 @@ const { isDesktop } = useViewport()
 // 셸(사이드바/하단탭) 적용 라우트
 const useShell = computed(() => route.meta.shell === true)
 // 모바일 하단 탭 노출 (메모는 집중 입력 화면이라 제외)
-const TAB_ROUTES = ['home', 'children', 'timeline', 'journal', 'me']
+// analysis 는 하단탭 항목은 아니지만(BottomTab 은 4탭) 탭바 자체는 유지해야 홈·아이들·마이로 나갈 수 있다 — '일지' 탭 활성.
+const TAB_ROUTES = ['home', 'children', 'timeline', 'journal', 'analysis', 'me']
 const showTab = computed(() => TAB_ROUTES.includes(route.name))
 </script>
 

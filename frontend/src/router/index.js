@@ -9,6 +9,7 @@ import ChildrenView from '../views/ChildrenView.vue'
 import TimelineView from '../views/TimelineView.vue'
 import MemoView from '../views/MemoView.vue'
 import JournalView from '../views/JournalView.vue'
+import AnalysisView from '../views/AnalysisView.vue'
 import MeView from '../views/MeView.vue'
 
 const routes = [
@@ -19,6 +20,7 @@ const routes = [
   { path: '/children', name: 'children', component: ChildrenView, meta: { needsClassroom: true, shell: true } },
   { path: '/children/:childId', name: 'timeline', component: TimelineView, meta: { needsClassroom: true, shell: true } },
   { path: '/journal', name: 'journal', component: JournalView, meta: { needsClassroom: true, shell: true } },
+  { path: '/analysis', name: 'analysis', component: AnalysisView, meta: { needsClassroom: true, shell: true } },
   { path: '/me', name: 'me', component: MeView, meta: { shell: true } },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]

@@ -1,8 +1,9 @@
 <script setup>
-// 일지·분석 허브 + 하루 일지 생성/검토 플로우(Epic 3, Story 3.5~3.7 연결).
+// 일지 페이지 — 지금까지 만든 일지 모아보기 + 하루 일지 생성/검토 플로우(Epic 3, Story 3.5~3.7 연결).
 // 백엔드: POST /journals/analyze · GET /journals?classroomId&date · PUT /journals/{id} · POST /journals/{id}/analyze
-// 한 아이 분석(A·개인평가, Epic 4)은 아이별 화면(타임라인)에 있어 아이 목록으로 보낸다.
-// 허브의 최근 목록은 '오늘 일지' 단건만 노출한다(MVP, 옵션 A).
+// 분석 진입(A 한 아이 분석 / B 오늘 전체 분석)은 분석 페이지(AnalysisView)로 분리됐다.
+//  · 데스크톱은 사이드바 '분석'으로, 모바일은 이 페이지 상단 '분석' 링크로 도달한다.
+//  · 'B 오늘 전체 분석'은 분석 페이지에서 ?analyze=1 로 이 페이지에 위임 → startAnalyze() 실행.
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { api, ApiError } from '../lib/api'
@@ -18,8 +19,8 @@ const router = useRouter()
 const route = useRoute()
 const classroomId = session.classroom?.id
 
-// 한 아이 분석(개인평가)은 아이별 화면(타임라인)에 있다 → 아이 목록에서 선택.
-function goReports() { router.push({ name: 'children' }) }
+// 모바일 전용 — 분석 페이지로 이동(데스크톱은 사이드바로 도달).
+function goAnalysis() { router.push({ name: 'analysis' }) }
 
 function isoToday() {
   const d = new Date()
@@ -210,10 +211,17 @@ function backToHub() { view.value = 'hub'; editing.value = false; loadJournals()
 
 onMounted(async () => {
   await Promise.all([loadExisting(), loadJournals()])
-  // 홈에서 특정 일지로 진입(?journalId=)한 경우 바로 열기.
+  // 홈에서 특정 일지로 진입(?journalId=)한 경우 바로 열기 — journalId 가 analyze 보다 우선.
   const qid = Number(route.query.journalId)
   if (Number.isInteger(qid) && qid > 0) {
     await openJournal({ id: qid })
+    return
+  }
+  // 분석 페이지의 'B 오늘 전체 분석' 위임(?analyze=1) — 오늘 일지 생성/열기 시작.
+  if (route.query.analyze === '1') {
+    // 쿼리를 먼저 제거해 새로고침·뒤로가기 시 재실행되는 것을 막는다.
+    router.replace({ query: {} })
+    await startAnalyze()
   }
 })
 onBeforeUnmount(() => clearTimeout(toastTimer))
@@ -224,10 +232,13 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
     <!-- ===== 허브 ===== -->
     <template v-if="view === 'hub'">
       <template v-if="isDesktop">
-        <div class="jr-display" style="margin-bottom:6px">일지·분석</div>
+        <div class="jr-display" style="margin-bottom:6px">일지</div>
         <div class="dt-sub" style="margin-bottom:26px">{{ todayLabel }} · {{ session.classroom?.name }}</div>
       </template>
-      <header v-else class="m-head screen"><span class="jr-h1">일지·분석</span></header>
+      <header v-else class="m-head screen">
+        <span class="jr-h1">일지</span>
+        <button class="an-link" @click="goAnalysis"><AppIcon name="sparkle" :size="17" /> 분석</button>
+      </header>
 
       <div :class="isDesktop ? '' : 'screen body'">
         <div class="cta" :class="{ dt: isDesktop }" @click="startAnalyze">
@@ -237,22 +248,6 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
             <div class="d">{{ journal ? '만든 일지를 검토·확정해요' : '하루 일지를 바로 만들어요' }}</div>
           </div>
           <AppIcon name="chevR" :size="22" />
-        </div>
-
-        <div class="ask">어떤 걸 분석할까요?</div>
-        <div class="analysis" :class="{ dt: isDesktop }">
-          <button class="abig" @click="goReports">
-            <div class="ab-top"><span class="ab-ic" style="background:rgba(201,168,232,.3)"><AppIcon name="me" :size="24" /></span>
-              <div><div class="ab-t"><span class="ab-id">A</span>한 아이 분석</div><div class="ab-sub">개인 관찰 평가</div></div></div>
-            <div class="ab-desc">한 아이의 기록을 모아 상담·발달평가용 관찰 평가를 만들어요.</div>
-            <div class="ab-go">아이 선택하기 <AppIcon name="chevR" :size="16" /></div>
-          </button>
-          <button class="abig" @click="startAnalyze">
-            <div class="ab-top"><span class="ab-ic" style="background:var(--brand-300)"><AppIcon name="journal" :size="24" /></span>
-              <div><div class="ab-t"><span class="ab-id">B</span>오늘 전체 분석</div><div class="ab-sub">하루 일지</div></div></div>
-            <div class="ab-desc">오늘 반 전체 메모로 매일 제출하는 일지를 만들어요.</div>
-            <div class="ab-go">{{ journal ? '오늘 일지 열기' : '바로 시작' }} <AppIcon name="chevR" :size="16" /></div>
-          </button>
         </div>
 
         <div class="recent-h"><span class="jr-h2" :style="isDesktop ? '' : 'font-size:18px'">지금까지 만든 일지</span></div>
@@ -380,7 +375,12 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
 <style scoped>
 .jh-m { display: flex; flex-direction: column; }
 .jh-dt { max-width: 760px; }
-.m-head { padding-top: 6px; padding-bottom: 12px; }
+.m-head { padding-top: 6px; padding-bottom: 12px; display: flex; align-items: center; }
+.an-link {
+  margin-left: auto; display: flex; align-items: center; gap: 5px; font-family: inherit; cursor: pointer;
+  font-size: 13.5px; font-weight: 800; color: var(--brand-700);
+  background: var(--brand-100); border: none; border-radius: 999px; padding: 8px 14px;
+}
 .body { padding-bottom: 28px; }
 .dt-sub { font-size: 15px; color: var(--text-sub); }
 
@@ -391,22 +391,7 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
 .cta-tx .t { font-size: 16px; font-weight: 800; }
 .cta-tx .d { font-size: 13px; color: #7a5e22; font-weight: 600; margin-top: 2px; }
 
-.ask { font-size: 13px; font-weight: 800; color: var(--text-sub); margin-bottom: 10px; }
-.analysis { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
-.analysis.dt { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 760px; }
-.abig {
-  display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: var(--r-card); cursor: pointer;
-  background: var(--surface); border: 1.5px solid var(--hair); box-shadow: var(--shadow); font-family: inherit; text-align: left;
-}
-.ab-top { display: flex; align-items: center; gap: 12px; }
-.ab-ic { width: 48px; height: 48px; border-radius: 14px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; color: var(--text); }
-.ab-t { font-size: 16.5px; font-weight: 800; }
-.ab-id { color: var(--text-faint); margin-right: 5px; }
-.ab-sub { font-size: 12.5px; color: var(--text-sub); font-weight: 600; }
-.ab-desc { font-size: 13.5px; color: var(--text-sub); line-height: 1.55; }
-.ab-go { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 800; color: var(--text-faint); }
-
-.recent-h { margin-bottom: 14px; }
+.recent-h { margin-bottom: 14px; margin-top: 4px; }
 .recent-empty {
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px;
   padding: 32px 20px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-sm); max-width: 760px;

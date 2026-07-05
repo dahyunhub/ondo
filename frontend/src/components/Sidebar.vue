@@ -11,7 +11,8 @@ const route = useRoute()
 const items = [
   { to: '/', name: 'home', label: '홈', icon: 'home' },
   { to: '/children', name: 'children', label: '아이들', icon: 'children' },
-  { to: '/journal', name: 'journal', label: '일지·분석', icon: 'journal' },
+  { to: '/journal', name: 'journal', label: '일지', icon: 'journal' },
+  { to: '/analysis', name: 'analysis', label: '분석', icon: 'sparkle' },
   { to: '/me', name: 'me', label: '마이', icon: 'me' },
 ]
 // 타임라인·메모도 '아이들'/'홈' 흐름에 속함
