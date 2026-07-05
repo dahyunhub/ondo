@@ -7,14 +7,10 @@ const items = [
   { to: '/', label: '홈', icon: 'home' },
   { to: '/children', label: '아이들', icon: 'children' },
   { to: '/journal', label: '일지', icon: 'journal' },
+  { to: '/analysis', label: '분석', icon: 'sparkle' },
   { to: '/me', label: '마이', icon: 'me' },
 ]
-// 모바일엔 분석 탭이 없다 — 분석은 일지의 하위 흐름이라 /analysis 체류 시 '일지' 탭을 활성 유지.
-const isOn = (to) => {
-  if (to === '/') return route.path === '/'
-  if (to === '/journal') return route.path.startsWith('/journal') || route.path.startsWith('/analysis')
-  return route.path.startsWith(to)
-}
+const isOn = (to) => (to === '/' ? route.path === '/' : route.path.startsWith(to))
 </script>
 
 <template>

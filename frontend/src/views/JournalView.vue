@@ -19,9 +19,6 @@ const router = useRouter()
 const route = useRoute()
 const classroomId = session.classroom?.id
 
-// 모바일 전용 — 분석 페이지로 이동(데스크톱은 사이드바로 도달).
-function goAnalysis() { router.push({ name: 'analysis' }) }
-
 function isoToday() {
   const d = new Date()
   const z = (n) => String(n).padStart(2, '0')
@@ -235,10 +232,7 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
         <div class="jr-display" style="margin-bottom:6px">일지</div>
         <div class="dt-sub" style="margin-bottom:26px">{{ todayLabel }} · {{ session.classroom?.name }}</div>
       </template>
-      <header v-else class="m-head screen">
-        <span class="jr-h1">일지</span>
-        <button class="an-link" @click="goAnalysis"><AppIcon name="sparkle" :size="17" /> 분석</button>
-      </header>
+      <header v-else class="m-head screen"><span class="jr-h1">일지</span></header>
 
       <div :class="isDesktop ? '' : 'screen body'">
         <div class="cta" :class="{ dt: isDesktop }" @click="startAnalyze">
@@ -375,12 +369,7 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
 <style scoped>
 .jh-m { display: flex; flex-direction: column; }
 .jh-dt { max-width: 760px; }
-.m-head { padding-top: 6px; padding-bottom: 12px; display: flex; align-items: center; }
-.an-link {
-  margin-left: auto; display: flex; align-items: center; gap: 5px; font-family: inherit; cursor: pointer;
-  font-size: 13.5px; font-weight: 800; color: var(--brand-700);
-  background: var(--brand-100); border: none; border-radius: 999px; padding: 8px 14px;
-}
+.m-head { padding-top: 6px; padding-bottom: 12px; }
 .body { padding-bottom: 28px; }
 .dt-sub { font-size: 15px; color: var(--text-sub); }
 

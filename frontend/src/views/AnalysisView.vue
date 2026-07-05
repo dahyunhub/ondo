@@ -21,10 +21,7 @@ function goDailyAnalysis() { router.push({ name: 'journal', query: { analyze: '1
       <div class="jr-display" style="margin-bottom:6px">분석</div>
       <div class="dt-sub" style="margin-bottom:26px">어떤 걸 분석할까요? · {{ session.classroom?.name }}</div>
     </template>
-    <header v-else class="m-head screen">
-      <button class="back-btn" @click="router.push({ name: 'journal' })" aria-label="일지로"><AppIcon name="back" :size="24" /></button>
-      <span class="jr-h1">분석</span>
-    </header>
+    <header v-else class="m-head screen"><span class="jr-h1">분석</span></header>
 
     <div :class="isDesktop ? '' : 'screen body'">
       <div v-if="!isDesktop" class="ask">어떤 걸 분석할까요?</div>
@@ -49,8 +46,7 @@ function goDailyAnalysis() { router.push({ name: 'journal', query: { analyze: '1
 <style scoped>
 .an-m { display: flex; flex-direction: column; }
 .an-dt { max-width: 760px; }
-.m-head { padding-top: 6px; padding-bottom: 12px; display: flex; align-items: center; gap: 6px; }
-.back-btn { border: none; background: transparent; color: var(--text); cursor: pointer; padding: 4px; display: flex; }
+.m-head { padding-top: 6px; padding-bottom: 12px; }
 .body { padding-bottom: 28px; }
 .dt-sub { font-size: 15px; color: var(--text-sub); }
 
