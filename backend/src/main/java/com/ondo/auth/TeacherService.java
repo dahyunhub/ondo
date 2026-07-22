@@ -40,6 +40,10 @@ public class TeacherService {
     @Transactional
     public void changePassword(Long teacherId, String currentPassword, String newPassword) {
         Teacher teacher = findTeacher(teacherId);
+        // 소셜 전용 계정(password_hash NULL)은 비밀번호가 없어 변경 대상이 아니다(matches() 전 가드).
+        if (!teacher.hasPassword()) {
+            throw new BusinessException(ErrorCode.SOCIAL_ACCOUNT_NO_PASSWORD);
+        }
         if (!passwordEncoder.matches(currentPassword, teacher.getPasswordHash())) {
             throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS);
         }

@@ -41,6 +41,14 @@ ondo:
     model: ${AI_MODEL:gpt-5.4-mini}
     timeout-seconds: ${AI_TIMEOUT_SECONDS:20}
     max-retries: ${AI_MAX_RETRIES:2}
+  kakao:
+    # 카카오 OAuth. REST API 키·client_secret 은 운영 시 env 주입(코드/저장소 노출 금지).
+    # client-secret 은 콘솔에서 사용함으로 설정한 경우에만 필요(미사용이면 빈 값).
+    client-id: ${KAKAO_CLIENT_ID:}
+    client-secret: ${KAKAO_CLIENT_SECRET:}
+    token-uri: ${KAKAO_TOKEN_URI:https://kauth.kakao.com/oauth/token}
+    user-uri: ${KAKAO_USER_URI:https://kapi.kakao.com/v2/user/me}
+    timeout-seconds: ${KAKAO_TIMEOUT_SECONDS:5}
   report:
     # 월말 자동 개인평가(FR-9) 실행 주기. Spring cron — L=말일. 기본 매월 말일 02:00(zone=UTC, 코드에서 지정).
     monthly-cron: ${REPORT_MONTHLY_CRON:0 0 2 L * *}
