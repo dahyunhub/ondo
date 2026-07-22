@@ -1,5 +1,6 @@
 package com.ondo.auth;
 
+import com.ondo.auth.dto.KakaoLoginRequest;
 import com.ondo.auth.dto.LoginRequest;
 import com.ondo.auth.dto.LoginResponse;
 import com.ondo.auth.dto.RegisterRequest;
@@ -30,5 +31,11 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<LoginResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+    }
+
+    /** 카카오 로그인 — 인가 코드 검증 후 이메일 로그인과 동일한 LoginResponse(200) 반환. */
+    @PostMapping("/kakao")
+    public ResponseEntity<LoginResponse> kakaoLogin(@Valid @RequestBody KakaoLoginRequest request) {
+        return ResponseEntity.ok(authService.kakaoLogin(request));
     }
 }

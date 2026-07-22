@@ -27,6 +27,26 @@ function switchTab(t) {
   error.value = ''
 }
 
+// 카카오 인가 페이지로 리다이렉트. redirect_uri 는 콜백 뷰와 동일하게 origin 기준으로 계산한다
+// (카카오 토큰 교환 시 값 일치 검증). VITE_KAKAO_CLIENT_ID 는 카카오 REST API 키.
+function kakaoLogin() {
+  const clientId = import.meta.env.VITE_KAKAO_CLIENT_ID
+  if (!clientId) {
+    error.value = '카카오 로그인이 아직 설정되지 않았어요.'
+    return
+  }
+  // CSRF 방지용 state — 이 브라우저가 시작한 흐름임을 콜백에서 대조한다(로그인 CSRF/코드 주입 차단).
+  const state = crypto.randomUUID()
+  sessionStorage.setItem('ondo.kakao.state', state)
+  const redirectUri = window.location.origin + '/oauth/kakao/callback'
+  const url = 'https://kauth.kakao.com/oauth/authorize'
+    + `?client_id=${encodeURIComponent(clientId)}`
+    + `&redirect_uri=${encodeURIComponent(redirectUri)}`
+    + '&response_type=code'
+    + `&state=${encodeURIComponent(state)}`
+  window.location.assign(url)
+}
+
 function gotoNext() {
   router.replace({ name: session.classroom ? 'home' : 'classrooms' })
 }
@@ -158,6 +178,15 @@ async function submitSignup() {
             <template v-else>가입 중…</template>
           </button>
         </form>
+
+        <!-- 소셜 로그인 — 로그인/회원가입 공통. 카카오 검증 후 기존과 동일한 세션이 발급된다. -->
+        <div class="social-sep"><span>또는</span></div>
+        <button type="button" class="kakao-btn" @click="kakaoLogin" :disabled="loading">
+          <svg class="kakao-ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path fill="#000" d="M12 3C6.9 3 2.75 6.2 2.75 10.15c0 2.55 1.72 4.79 4.3 6.05-.19.68-.68 2.47-.78 2.85-.13.48.17.47.37.34.15-.1 2.4-1.63 3.38-2.29.64.09 1.3.14 1.98.14 5.1 0 9.25-3.2 9.25-7.15S17.1 3 12 3Z"/>
+          </svg>
+          카카오로 시작하기
+        </button>
       </div>
     </section>
   </div>
@@ -205,4 +234,21 @@ async function submitSignup() {
 .keep-lab { font-size: 13.5px; color: var(--text-sub); font-weight: 600; }
 .find { margin-left: auto; font-size: 13.5px; color: var(--text-sub); font-weight: 600; cursor: pointer; }
 .err { color: var(--warn); font-size: 13.5px; font-weight: 600; margin: -4px 2px 0; }
+
+/* 소셜 로그인 */
+.social-sep {
+  display: flex; align-items: center; gap: 12px; margin: 22px 0 16px; color: var(--text-faint); font-size: 13px;
+}
+.social-sep::before, .social-sep::after {
+  content: ''; flex: 1; height: 1px; background: var(--hair);
+}
+.kakao-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+  height: 52px; border: none; border-radius: 12px; background: #FEE500; color: #191600;
+  font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+  transition: filter .15s ease;
+}
+.kakao-btn:hover { filter: brightness(0.97); }
+.kakao-btn:disabled { opacity: .6; cursor: default; }
+.kakao-ico { flex: 0 0 auto; }
 </style>

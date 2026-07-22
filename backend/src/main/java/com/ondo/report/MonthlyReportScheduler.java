@@ -29,8 +29,11 @@ public class MonthlyReportScheduler {
         this.reportService = reportService;
     }
 
-    /** 매월 말일(기본 02:00 KST) 실행. 주기는 ondo.report.monthly-cron 으로 override. */
-    @Scheduled(cron = "${ondo.report.monthly-cron:0 0 2 L * *}", zone = "Asia/Seoul")
+    /**
+     * 자동 실행 트리거. 기본 비활성("-", Scheduled.CRON_DISABLED) — 평가는 교사 수동 생성으로만.
+     * ondo.report.monthly-cron(env REPORT_MONTHLY_CRON)에 cron 을 지정하면 자동 실행이 켜진다(예: 0 0 2 L * * = 매월 말일 02:00 KST).
+     */
+    @Scheduled(cron = "${ondo.report.monthly-cron:-}", zone = "Asia/Seoul")
     public void scheduledRun() {
         runForMonth(AppTime.thisMonth());
     }

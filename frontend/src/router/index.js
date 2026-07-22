@@ -3,6 +3,7 @@ import { auth } from '../stores/auth'
 import { session } from '../stores/session'
 
 import LoginView from '../views/LoginView.vue'
+import KakaoCallbackView from '../views/KakaoCallbackView.vue'
 import ClassroomsView from '../views/ClassroomsView.vue'
 import HomeView from '../views/HomeView.vue'
 import ChildrenView from '../views/ChildrenView.vue'
@@ -14,6 +15,7 @@ import MeView from '../views/MeView.vue'
 
 const routes = [
   { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
+  { path: '/oauth/kakao/callback', name: 'kakao-callback', component: KakaoCallbackView, meta: { public: true } },
   { path: '/classrooms', name: 'classrooms', component: ClassroomsView },
   { path: '/', name: 'home', component: HomeView, meta: { needsClassroom: true, shell: true } },
   { path: '/memo', name: 'memo', component: MemoView, meta: { needsClassroom: true, shell: true } },

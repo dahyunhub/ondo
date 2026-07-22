@@ -1,10 +1,13 @@
 package com.ondo.auth;
 
 import com.ondo.auth.domain.Teacher;
+import com.ondo.auth.dto.KakaoLoginRequest;
 import com.ondo.auth.dto.LoginRequest;
 import com.ondo.auth.dto.LoginResponse;
 import com.ondo.auth.dto.RegisterRequest;
 import com.ondo.auth.jwt.JwtProvider;
+import com.ondo.auth.kakao.KakaoOAuthClient;
+import com.ondo.auth.kakao.KakaoOAuthClient.KakaoUser;
 import com.ondo.common.exception.BusinessException;
 import com.ondo.common.exception.ErrorCode;
 import com.ondo.photo.ProfilePhotoService;
@@ -21,24 +24,71 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final ProfilePhotoService photoService;
+    private final KakaoOAuthClient kakaoClient;
 
     public AuthService(TeacherRepository teacherRepository, PasswordEncoder passwordEncoder, JwtProvider jwtProvider,
-                       ProfilePhotoService photoService) {
+                       ProfilePhotoService photoService, KakaoOAuthClient kakaoClient) {
         this.teacherRepository = teacherRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtProvider = jwtProvider;
         this.photoService = photoService;
+        this.kakaoClient = kakaoClient;
     }
 
     public LoginResponse login(LoginRequest request) {
         Teacher teacher = teacherRepository.findByEmail(request.email())
                 .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS));
 
-        if (!passwordEncoder.matches(request.password(), teacher.getPasswordHash())) {
+        // 소셜 전용 계정(password_hash NULL)은 비번 로그인 불가 — matches() 전 null 가드(NPE 금지).
+        if (!teacher.hasPassword()
+                || !passwordEncoder.matches(request.password(), teacher.getPasswordHash())) {
             throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS);
         }
 
         return issueToken(teacher);
+    }
+
+    /**
+     * 카카오 로그인(FR-10 확장). 인가 코드를 카카오로 검증한 뒤 계정을 find-or-create/연동하고,
+     * 이메일 로그인과 동일한 토큰을 발급한다. 연동 정책:
+     * <ol>
+     *   <li>(provider, provider_id) 일치 계정 → 그대로 재로그인</li>
+     *   <li>없으면, 카카오가 준 <b>검증된</b> 이메일이 기존 계정과 일치 → 자동 연동</li>
+     *   <li>그래도 없으면 신규 생성(이메일 미제공/미검증이면 email NULL)</li>
+     * </ol>
+     * 클래스가 readOnly 라 쓰기 트랜잭션을 명시한다.
+     */
+    @Transactional
+    public LoginResponse kakaoLogin(KakaoLoginRequest request) {
+        KakaoUser kakaoUser = kakaoClient.exchange(request.code(), request.redirectUri());
+
+        Teacher teacher = teacherRepository
+                .findByProviderAndProviderId(Teacher.PROVIDER_KAKAO, kakaoUser.providerId())
+                .orElseGet(() -> linkOrCreate(kakaoUser));
+
+        return issueToken(teacher);
+    }
+
+    /** provider_id 매칭 실패 시: 검증된 이메일로 기존 계정 자동 연동 → 없으면 신규 생성. */
+    private Teacher linkOrCreate(KakaoUser kakaoUser) {
+        boolean usableEmail = kakaoUser.email() != null && kakaoUser.emailVerified();
+        if (usableEmail) {
+            Teacher existing = teacherRepository.findByEmail(kakaoUser.email()).orElse(null);
+            if (existing != null) {
+                // provider 매칭은 앞에서 이미 실패했다. 그런데도 이메일로 찾은 계정에 provider 가 이미
+                // 있다면 = 다른 소셜 identity 다. 그 행을 덮어쓰면 원 소유자가 탈취/락아웃되므로 거부한다.
+                // provider 가 null 인 이메일/비번 계정만 카카오로 연동한다.
+                if (existing.getProvider() != null) {
+                    throw new BusinessException(ErrorCode.AUTH_KAKAO_FAILED);
+                }
+                existing.linkKakao(kakaoUser.providerId());
+                return existing;
+            }
+        }
+        // 미검증/미제공 이메일은 저장하지 않는다(계정 탈취·UNIQUE 선점 방지) — email NULL 신규 생성.
+        String email = usableEmail ? kakaoUser.email() : null;
+        return teacherRepository.save(
+                Teacher.createFromKakao(kakaoUser.providerId(), email, kakaoUser.nickname()));
     }
 
     /**
