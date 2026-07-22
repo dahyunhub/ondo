@@ -50,8 +50,10 @@ ondo:
     user-uri: ${KAKAO_USER_URI:https://kapi.kakao.com/v2/user/me}
     timeout-seconds: ${KAKAO_TIMEOUT_SECONDS:5}
   report:
-    # 월말 자동 개인평가(FR-9) 실행 주기. Spring cron — L=말일. 기본 매월 말일 02:00(zone=UTC, 코드에서 지정).
-    monthly-cron: ${REPORT_MONTHLY_CRON:0 0 2 L * *}
+    # 월말 자동 개인평가(FR-9) 실행 주기. Spring cron — L=말일.
+    # 기본값 "-" = 비활성(Scheduled.CRON_DISABLED). 평가 생성은 교사 수동(POST /children/{id}/reports)으로만.
+    # 자동 실행 복구: REPORT_MONTHLY_CRON 에 cron 지정(예: 0 0 2 L * * → 매월 말일 02:00 KST).
+    monthly-cron: ${REPORT_MONTHLY_CRON:-}
 
 management:
   endpoints:
