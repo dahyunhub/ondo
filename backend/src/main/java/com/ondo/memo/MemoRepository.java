@@ -42,6 +42,21 @@ public interface MemoRepository extends JpaRepository<Memo, Long> {
                                @Param("start") LocalDateTime start,
                                @Param("end") LocalDateTime end);
 
+    /**
+     * 관찰 온도(spec-child-warmth): 특정 반 소속 아동의 {@code since} 이후 메모 시각만. 본문은 필요 없어
+     * {@code (childId, createdAt)} 만 뽑는다. child 서브쿼리·메모 모두 @SQLRestriction 이 적용돼
+     * 숨긴 아이·삭제 메모는 자동 제외된다. 정렬 불필요(앱에서 집계).
+     *
+     * @return 행: [childId(Number), createdAt(LocalDateTime, UTC)]
+     */
+    @Query("""
+            SELECT m.childId, m.createdAt FROM Memo m
+            WHERE m.childId IN (SELECT c.id FROM Child c WHERE c.classroomId = :classroomId)
+              AND m.createdAt >= :since
+            """)
+    List<Object[]> findRecentMemoTimes(@Param("classroomId") Long classroomId,
+                                       @Param("since") LocalDateTime since);
+
     /** 타임라인: 특정 영역 필터(최신순). */
     List<Memo> findByChildIdAndCurriculumAreaOrderByCreatedAtDesc(Long childId, CurriculumArea area);
 
