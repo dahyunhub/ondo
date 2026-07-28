@@ -20,6 +20,7 @@ const adding = ref(false)
 const showHidden = ref(false)
 const restoring = ref(false)
 const restoreError = ref('')
+const warmth = ref({}) // childId -> 'WARM' | 'LOW'. 비어 있으면 표시 안 함
 
 function fmtBirth(d) { return d ? d.replaceAll('-', '.') : '' }
 
@@ -42,8 +43,18 @@ async function loadHidden() {
   } catch { /* 본 명단에 영향 없음 */ }
 }
 
+// 관찰 온도(spec-child-warmth) — 부가 정보라 실패해도 명단은 그대로 보여준다.
+// enabled:false(콜드 스타트)면 아무 표시도 하지 않는다. 안내 문구조차 두지 않는다.
+async function loadWarmth() {
+  try {
+    const res = await api.get(`/classrooms/${classroomId}/warmth`)
+    if (!res?.enabled) return
+    warmth.value = Object.fromEntries(res.items.map((i) => [i.childId, i.level]))
+  } catch { /* 명단 렌더에 영향 없음 */ }
+}
+
 function openTimeline(c) { router.push({ name: 'timeline', params: { childId: c.id } }) }
-function onSaved() { adding.value = false; load(); loadHidden() }
+function onSaved() { adding.value = false; load(); loadHidden(); loadWarmth() }
 
 // 숨김 해제(복원) — 활성 명단으로 되돌린다.
 async function restoreChild(c) {
@@ -52,7 +63,7 @@ async function restoreChild(c) {
   restoreError.value = ''
   try {
     await api.post(`/children/${c.id}/restore`)
-    await Promise.all([load(), loadHidden()])
+    await Promise.all([load(), loadHidden(), loadWarmth()])
     if (!hiddenChildren.value.length) showHidden.value = false
   } catch (e) {
     restoreError.value = e.message || '복원 중 문제가 발생했어요.'
@@ -63,7 +74,7 @@ async function restoreChild(c) {
 
 const count = computed(() => children.value.length)
 const hiddenCount = computed(() => hiddenChildren.value.length)
-onMounted(() => { load(); loadHidden() })
+onMounted(() => { load(); loadHidden(); loadWarmth() })
 </script>
 
 <template>
@@ -93,7 +104,8 @@ onMounted(() => { load(); loadHidden() })
     </div>
     <div v-else class="grid dt">
       <button v-for="c in children" :key="c.id" class="kid jr-card" @click="openTimeline(c)">
-        <Avatar :name="c.name" size="lg" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''" />
+        <Avatar :name="c.name" size="lg" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''"
+                :warmth="warmth[c.id] || ''" />
         <span class="kid-name">{{ c.name }}</span>
         <span class="kid-chip">{{ fmtBirth(c.birthDate) }} · {{ c.gender === 'MALE' ? '남' : '여' }}</span>
       </button>
@@ -134,7 +146,8 @@ onMounted(() => { load(); loadHidden() })
       </div>
       <div v-else class="grid">
         <button v-for="c in children" :key="c.id" class="kid jr-card" @click="openTimeline(c)">
-          <Avatar :name="c.name" size="lg" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''" />
+          <Avatar :name="c.name" size="lg" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''"
+                  :warmth="warmth[c.id] || ''" />
           <span class="kid-name">{{ c.name }}</span>
           <span class="kid-chip">{{ fmtBirth(c.birthDate) }} · {{ c.gender === 'MALE' ? '남' : '여' }}</span>
         </button>

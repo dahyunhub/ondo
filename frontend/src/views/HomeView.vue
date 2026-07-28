@@ -7,6 +7,7 @@ import { session } from '../stores/session'
 import { useViewport } from '../lib/useViewport'
 import Avatar from '../components/Avatar.vue'
 import AppIcon from '../components/AppIcon.vue'
+import MeetSoonCard from '../components/MeetSoonCard.vue'
 
 const router = useRouter()
 const { isDesktop } = useViewport()
@@ -21,9 +22,25 @@ function go(name) { router.push({ name }) }
 const journals = ref([])
 function fmtDate(iso) { return new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric' }).format(new Date(iso)) }
 function openJournal(id) { router.push({ name: 'journal', query: { journalId: id } }) }
+// 이번 주 만나볼 아이 — 최근 기록이 옅은 아이(서버가 최대 3명으로 이미 제한).
+// 온도 API 는 childId·level 만 주므로 이름·사진은 명단에서 가져와 붙인다.
+const meetSoon = ref([])
+async function loadMeetSoon(cid) {
+  try {
+    const [warmth, children] = await Promise.all([
+      api.get(`/classrooms/${cid}/warmth`),
+      api.get(`/classrooms/${cid}/children`),
+    ])
+    if (!warmth?.enabled) return
+    const lowIds = new Set(warmth.items.filter((i) => i.level === 'LOW').map((i) => i.childId))
+    meetSoon.value = children.filter((c) => lowIds.has(c.id))
+  } catch { /* 부가 정보 — 홈은 그대로 뜬다 */ }
+}
+
 onMounted(async () => {
   const cid = session.classroom?.id
   if (!cid) return
+  loadMeetSoon(cid)
   try { journals.value = await api.get(`/journals/list?classroomId=${cid}`) } catch (e) { /* 비치명적 */ }
 })
 </script>
@@ -74,6 +91,7 @@ onMounted(async () => {
           <div class="cta-tx"><div class="t">AI 일지 쓰기</div><div class="d">오늘 메모로 하루 일지를 만들어요</div></div>
           <AppIcon name="chevR" :size="24" />
         </div>
+        <MeetSoonCard v-if="meetSoon.length" :children="meetSoon" />
         <div class="jr-card soon-card">
           <div class="soon-h">AI 분석</div>
           <button class="soon-row act" @click="go('journal')">
@@ -121,6 +139,8 @@ onMounted(async () => {
         <span class="action-tx"><span class="t">아이들 관리</span><span class="d">명단 · 등록 · 수정 · 타임라인</span></span>
         <AppIcon name="chevR" :size="22" />
       </button>
+
+      <MeetSoonCard v-if="meetSoon.length" :children="meetSoon" style="margin-top:24px" />
 
       <div class="soon-label">지금까지 만든 일지</div>
       <div v-if="journals.length" class="jlist">
