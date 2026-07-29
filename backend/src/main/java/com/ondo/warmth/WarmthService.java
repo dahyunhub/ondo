@@ -44,7 +44,13 @@ public class WarmthService {
     /** 반 평균 점수 대비 이 비율 미만이면 LOW 후보. */
     private static final double LOW_RATIO = 0.3;
 
-    /** LOW 표시 상한. 후보가 대상의 1/3을 넘으면 가장 옅은 이 인원만 남긴다(죄책감 폭탄 방지). */
+    /**
+     * LOW 표시 상한. 조건 없이 항상 적용된다 — 후보가 몇 명이든 가장 옅은 이 인원만 남는다(죄책감 폭탄 방지).
+     *
+     * <p>처음엔 "후보가 대상의 1/3을 넘을 때만" 상한을 걸었는데, 그러면 후보가 정확히 1/3 이하일 때
+     * 상한이 통째로 빠져 15명 반에서 LOW 5명, 30명 반에서 10명이 나왔다. 게다가 규칙이 비단조적이었다 —
+     * 방치된 아이가 5명일 땐 5명 다 뜨는데 6명이 되면 오히려 3명으로 줄었다. 무조건 상한으로 바꿔 둘 다 없앴다.
+     */
     private static final int LOW_CAP = 3;
 
     /** 등록 후 이 기간(일, 오늘 포함)은 관찰 기회가 없었다고 보고 평균에서 제외하며 WARM 으로 취급한다. */
@@ -80,7 +86,8 @@ public class WarmthService {
         }
 
         LocalDateTime since = AppTime.startOfDayUtc(today.minusDays(WINDOW_DAYS - 1L));
-        List<Object[]> rows = memoRepository.findRecentMemoTimes(classroomId, since);
+        LocalDateTime end = AppTime.startOfNextDayUtc(today); // 미래 시각 행이 최대 가중치로 새는 것 차단
+        List<Object[]> rows = memoRepository.findRecentMemoTimes(classroomId, since, end);
 
         // 콜드 스타트 가드 — 반 전체 기록량이 아이 수에도 못 미치면 아직 판정할 근거가 없다.
         // 가입 직후 전원이 옅게 뜨는 상황을 원천 차단하는 마지막 안전장치.
@@ -113,8 +120,7 @@ public class WarmthService {
     }
 
     /**
-     * LOW 로 표시할 아이. 평균의 {@value #LOW_RATIO} 미만인 후보를 뽑되, 후보가 대상의 1/3을 넘으면
-     * 가장 옅은 {@value #LOW_CAP} 명만 남긴다.
+     * LOW 로 표시할 아이. 평균의 30% 미만인 후보 중 가장 옅은 {@value #LOW_CAP} 명까지만.
      *
      * <p>대상 아이의 메모가 전무해 평균이 0이면 임계도 0이 되어 후보가 나오지 않는다(전원 WARM).
      * 판정 근거가 없을 때 아무도 지목하지 않는 쪽으로 무너지는 것이 이 기능의 안전한 실패 방향이다.
@@ -124,14 +130,8 @@ public class WarmthService {
                 .mapToDouble(c -> score(scores, c))
                 .average().orElse(0.0) * LOW_RATIO;
 
-        List<Child> candidates = target.stream()
+        return target.stream()
                 .filter(c -> score(scores, c) < threshold)
-                .toList();
-
-        if (candidates.size() <= target.size() / 3) {
-            return candidates.stream().map(Child::getId).collect(Collectors.toSet());
-        }
-        return candidates.stream()
                 .sorted(Comparator.comparingDouble((Child c) -> score(scores, c)).thenComparing(Child::getId))
                 .limit(LOW_CAP)
                 .map(Child::getId)

@@ -22,7 +22,8 @@ function go(name) { router.push({ name }) }
 const journals = ref([])
 function fmtDate(iso) { return new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric' }).format(new Date(iso)) }
 function openJournal(id) { router.push({ name: 'journal', query: { journalId: id } }) }
-// 이번 주 만나볼 아이 — 최근 기록이 옅은 아이(서버가 최대 3명으로 이미 제한).
+// 이번 주 만나볼 아이 — 최근 기록이 옅은 아이.
+// 인원 상한은 서버(WarmthService.LOW_CAP)가 무조건 3명으로 강제하므로 여기서 다시 자르지 않는다.
 // 온도 API 는 childId·level 만 주므로 이름·사진은 명단에서 가져와 붙인다.
 const meetSoon = ref([])
 async function loadMeetSoon(cid) {

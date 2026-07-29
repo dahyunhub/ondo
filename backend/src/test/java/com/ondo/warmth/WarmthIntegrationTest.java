@@ -26,6 +26,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -168,7 +169,7 @@ class WarmthIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    void LOW_후보가_대상의_삼분의일을_넘으면_가장_옅은_세_명만_남는다() throws Exception {
+    void LOW_는_후보가_많아도_가장_옅은_세_명까지만() throws Exception {
         for (int i = 1; i <= 4; i++) {
             memos(oldChild(String.format("활발%02d", i)), 1, 10);
         }
@@ -180,6 +181,91 @@ class WarmthIntegrationTest extends IntegrationTestSupport {
 
         assertThat(levels).hasSize(10);
         assertThat(lowIds(levels)).hasSize(3);
+    }
+
+    /**
+     * 리뷰 회귀: 예전엔 "후보가 대상의 1/3을 넘을 때만" 상한을 걸어서, 후보가 정확히 1/3 이하면
+     * 상한이 통째로 빠졌다(15명 반 → LOW 5명). 상한은 조건 없이 항상 걸려야 한다.
+     */
+    @Test
+    void 후보가_대상의_정확히_삼분의일이어도_상한이_걸린다() throws Exception {
+        for (int i = 1; i <= 10; i++) {
+            memos(oldChild(String.format("활발%02d", i)), 1, 5);
+        }
+        for (int i = 1; i <= 5; i++) {
+            oldChild(String.format("조용%02d", i)); // 후보 5명 == 15/3
+        }
+
+        Map<Long, String> levels = fetch();
+
+        assertThat(levels).hasSize(15);
+        assertThat(lowIds(levels)).hasSize(3);
+    }
+
+    /**
+     * 리뷰 회귀: 상한이 조건부였을 땐 규칙이 비단조적이었다 — 방치된 아이가 5명이면 LOW 5명,
+     * 6명이면 오히려 LOW 3명. 방치가 늘었는데 목록이 줄어드는 일은 없어야 한다.
+     */
+    @Test
+    void 방치된_아이가_늘어도_LOW_목록이_줄지_않는다() throws Exception {
+        for (int i = 1; i <= 10; i++) {
+            memos(oldChild(String.format("활발%02d", i)), 1, 5);
+        }
+        for (int i = 1; i <= 5; i++) {
+            oldChild(String.format("조용%02d", i));
+        }
+        int before = lowIds(fetch()).size();
+
+        oldChild("조용06"); // 방치 아이 1명 추가
+        int after = lowIds(fetch()).size();
+
+        assertThat(after).isGreaterThanOrEqualTo(before);
+    }
+
+    @Test
+    void 삭제된_메모는_점수에_반영되지_않는다() throws Exception {
+        fillers(8);
+        Long kept = oldChild("살아있는기록");
+        Long erased = oldChild("지운기록");
+        memos(kept, 1, 5);
+        memos(erased, 1, 5);
+        // erased 의 메모만 soft delete → 기록이 없는 것과 같아져야 한다
+        jdbcTemplate.update("UPDATE memo SET deleted_at = ? WHERE child_id = ?",
+                Timestamp.valueOf(LocalDateTime.now()), erased);
+
+        Map<Long, String> levels = fetch();
+
+        assertThat(levels.get(kept)).isEqualTo("WARM");
+        assertThat(levels.get(erased)).isEqualTo("LOW");
+    }
+
+    @Test
+    void 아이_전원이_신규면_판정하지_않는다() throws Exception {
+        for (int i = 1; i <= 6; i++) {
+            memos(child(String.format("오늘등록%02d", i), 0), 1, 5);
+        }
+
+        em.flush();
+        em.clear();
+        mockMvc.perform(get("/api/v1/classrooms/{id}/warmth", classroomId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false));
+    }
+
+    @Test
+    void 미래_시각_메모는_창_밖이라_집계되지_않는다() throws Exception {
+        fillers(8);
+        Long normal = oldChild("정상기록");
+        Long skewed = oldChild("시계오차");
+        memos(normal, 1, 5);
+        // 시계 오차/백필로 들어온 미래 행 — 예전엔 경과일 클램프 때문에 최대 가중치로 잡혔다
+        memosAt(skewed, kstDay(-3), 20);
+
+        Map<Long, String> levels = fetch();
+
+        assertThat(levels.get(normal)).isEqualTo("WARM");
+        assertThat(levels.get(skewed)).isEqualTo("LOW");
     }
 
     @Test
@@ -269,6 +355,35 @@ class WarmthIntegrationTest extends IntegrationTestSupport {
 
         assertThat(levels).hasSize(5);
         assertThat(levels).doesNotContainKey(hiddenId);
+    }
+
+    /**
+     * 리뷰 지적: 기존 '숨긴 아이' 테스트는 명단에서 빠지는 것만 봐서, 숨긴 아이의 <b>메모</b>가
+     * 집계에서 빠지는지는 검증하지 못했다(포함이든 제외든 단언이 통과). 여기선 숨긴 아이의 메모가
+     * 세어지면 콜드 스타트 가드를 넘고, 제외되면 못 넘도록 수치를 잡아 판별 가능하게 만든다.
+     */
+    @Test
+    void 숨긴_아이의_메모는_콜드스타트_집계에도_들어가지_않는다() throws Exception {
+        List<Long> ids = new ArrayList<>();
+        for (int i = 1; i <= 6; i++) {
+            ids.add(oldChild(String.format("아이%02d", i)));
+        }
+        Long hiddenId = ids.get(0);
+        memos(hiddenId, 1, 50); // 세어지면 rows=54 >= 5 → enabled:true 가 되어버린다
+        Child hidden = childRepository.findById(hiddenId).orElseThrow();
+        hidden.softDelete();
+        childRepository.save(hidden);
+        // 보이는 5명 중 4명에게만 1건씩 → 집계 대상 메모 4건 < 대상 5명 → 콜드 스타트여야 정상
+        for (int i = 1; i <= 4; i++) {
+            memos(ids.get(i), 1, 1);
+        }
+
+        em.flush();
+        em.clear();
+        mockMvc.perform(get("/api/v1/classrooms/{id}/warmth", classroomId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false));
     }
 
     // ---------- 인가 · 응답 형태 ----------

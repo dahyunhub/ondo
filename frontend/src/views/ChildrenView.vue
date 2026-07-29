@@ -45,7 +45,10 @@ async function loadHidden() {
 
 // 관찰 온도(spec-child-warmth) — 부가 정보라 실패해도 명단은 그대로 보여준다.
 // enabled:false(콜드 스타트)면 아무 표시도 하지 않는다. 안내 문구조차 두지 않는다.
+// 어느 경로로 끝나든 먼저 비운다 — 재조회(아이 추가·복원)로 대상이 늘어 콜드 스타트로 떨어지면
+// 이전 판정의 링이 남아 "enabled:false 면 아무 표시도 안 한다"를 스스로 어기게 된다.
 async function loadWarmth() {
+  warmth.value = {}
   try {
     const res = await api.get(`/classrooms/${classroomId}/warmth`)
     if (!res?.enabled) return
