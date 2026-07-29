@@ -20,6 +20,8 @@ const adding = ref(false)
 const showHidden = ref(false)
 const restoring = ref(false)
 const restoreError = ref('')
+const warmth = ref({}) // childId -> 'WARM' | 'LOW' | 'SNOOZED'. 비어 있으면 표시 안 함
+const unsnoozing = ref(null)
 
 function fmtBirth(d) { return d ? d.replaceAll('-', '.') : '' }
 
@@ -42,8 +44,34 @@ async function loadHidden() {
   } catch { /* 본 명단에 영향 없음 */ }
 }
 
+// 관찰 온도(spec-child-warmth) — 부가 정보라 실패해도 명단은 그대로 보여준다.
+// enabled:false(콜드 스타트)면 아무 표시도 하지 않는다. 안내 문구조차 두지 않는다.
+// 어느 경로로 끝나든 먼저 비운다 — 재조회(아이 추가·복원)로 대상이 늘어 콜드 스타트로 떨어지면
+// 이전 판정의 링이 남아 "enabled:false 면 아무 표시도 안 한다"를 스스로 어기게 된다.
+async function loadWarmth() {
+  warmth.value = {}
+  try {
+    const res = await api.get(`/classrooms/${classroomId}/warmth`)
+    if (!res?.enabled) return
+    warmth.value = Object.fromEntries(res.items.map((i) => [i.childId, i.level]))
+  } catch { /* 명단 렌더에 영향 없음 */ }
+}
+
 function openTimeline(c) { router.push({ name: 'timeline', params: { childId: c.id } }) }
-function onSaved() { adding.value = false; load(); loadHidden() }
+
+// 접어두기 해제 — 되돌리기 쉬운 동작이라 확인 단계를 두지 않는다.
+// 카드 클릭(타임라인)과 겹치지 않게 템플릿에서 @click.stop 으로 분리한다.
+async function unsnooze(c) {
+  if (unsnoozing.value) return
+  unsnoozing.value = c.id
+  try {
+    await api.del(`/children/${c.id}/warmth-snooze`)
+    await loadWarmth()
+  } catch { /* 실패하면 칩이 그대로 남는다 */ } finally {
+    unsnoozing.value = null
+  }
+}
+function onSaved() { adding.value = false; load(); loadHidden(); loadWarmth() }
 
 // 숨김 해제(복원) — 활성 명단으로 되돌린다.
 async function restoreChild(c) {
@@ -52,7 +80,7 @@ async function restoreChild(c) {
   restoreError.value = ''
   try {
     await api.post(`/children/${c.id}/restore`)
-    await Promise.all([load(), loadHidden()])
+    await Promise.all([load(), loadHidden(), loadWarmth()])
     if (!hiddenChildren.value.length) showHidden.value = false
   } catch (e) {
     restoreError.value = e.message || '복원 중 문제가 발생했어요.'
@@ -63,7 +91,7 @@ async function restoreChild(c) {
 
 const count = computed(() => children.value.length)
 const hiddenCount = computed(() => hiddenChildren.value.length)
-onMounted(() => { load(); loadHidden() })
+onMounted(() => { load(); loadHidden(); loadWarmth() })
 </script>
 
 <template>
@@ -93,9 +121,13 @@ onMounted(() => { load(); loadHidden() })
     </div>
     <div v-else class="grid dt">
       <button v-for="c in children" :key="c.id" class="kid jr-card" @click="openTimeline(c)">
-        <Avatar :name="c.name" size="lg" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''" />
+        <Avatar :name="c.name" size="lg" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''"
+                :warmth="warmth[c.id] === 'SNOOZED' ? '' : (warmth[c.id] || '')" />
         <span class="kid-name">{{ c.name }}</span>
-        <span class="kid-chip">{{ fmtBirth(c.birthDate) }} · {{ c.gender === 'MALE' ? '남' : '여' }}</span>
+        <span v-if="warmth[c.id] === 'SNOOZED'" class="kid-chip snoozed"
+              :class="{ busy: unsnoozing === c.id }" role="button"
+              title="탭하면 다시 온도 판정에 포함돼요" @click.stop="unsnooze(c)">접어둠 · 해제</span>
+        <span v-else class="kid-chip">{{ fmtBirth(c.birthDate) }} · {{ c.gender === 'MALE' ? '남' : '여' }}</span>
       </button>
     </div>
   </div>
@@ -134,9 +166,13 @@ onMounted(() => { load(); loadHidden() })
       </div>
       <div v-else class="grid">
         <button v-for="c in children" :key="c.id" class="kid jr-card" @click="openTimeline(c)">
-          <Avatar :name="c.name" size="lg" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''" />
+          <Avatar :name="c.name" size="lg" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''"
+                  :warmth="warmth[c.id] === 'SNOOZED' ? '' : (warmth[c.id] || '')" />
           <span class="kid-name">{{ c.name }}</span>
-          <span class="kid-chip">{{ fmtBirth(c.birthDate) }} · {{ c.gender === 'MALE' ? '남' : '여' }}</span>
+          <span v-if="warmth[c.id] === 'SNOOZED'" class="kid-chip snoozed"
+                :class="{ busy: unsnoozing === c.id }" role="button"
+                title="탭하면 다시 온도 판정에 포함돼요" @click.stop="unsnooze(c)">접어둠 · 해제</span>
+          <span v-else class="kid-chip">{{ fmtBirth(c.birthDate) }} · {{ c.gender === 'MALE' ? '남' : '여' }}</span>
         </button>
       </div>
     </div>
@@ -199,6 +235,8 @@ onMounted(() => { load(); loadHidden() })
   display: inline-flex; align-items: center; font-size: 11.5px; font-weight: 700; padding: 5px 10px; border-radius: 999px;
   background: var(--surface-soft); color: var(--text-sub); font-variant-numeric: tabular-nums;
 }
+.kid-chip.snoozed { background: var(--brand-100); color: var(--brand-700); cursor: pointer; }
+.kid-chip.snoozed.busy { opacity: .5; cursor: default; }
 .muted { color: var(--text-sub); }
 .err { color: var(--warn); font-weight: 600; }
 .empty-box { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 40px 24px; }

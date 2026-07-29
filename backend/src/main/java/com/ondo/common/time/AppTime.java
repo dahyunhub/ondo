@@ -37,4 +37,9 @@ public final class AppTime {
     public static LocalDateTime startOfNextDayUtc(LocalDate date) {
         return startOfDayUtc(date.plusDays(1));
     }
+
+    /** UTC 저장 시각을 KST 달력일로. ({@code memo.created_at} → "며칠 전" 계산의 단일 출처) */
+    public static LocalDate kstDateOf(LocalDateTime utc) {
+        return utc.atOffset(ZoneOffset.UTC).atZoneSameInstant(ZONE).toLocalDate();
+    }
 }

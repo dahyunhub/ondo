@@ -42,6 +42,25 @@ public interface MemoRepository extends JpaRepository<Memo, Long> {
                                @Param("start") LocalDateTime start,
                                @Param("end") LocalDateTime end);
 
+    /**
+     * 관찰 온도(spec-child-warmth): 특정 반 소속 아동의 {@code [since, end)} 구간 메모 시각만. 본문은 필요 없어
+     * {@code (childId, createdAt)} 만 뽑는다. child 서브쿼리·메모 모두 @SQLRestriction 이 적용돼
+     * 숨긴 아이·삭제 메모는 자동 제외된다. 정렬 불필요(앱에서 집계).
+     *
+     * <p>상한 {@code end} 가 필요한 이유: 시계 오차·백필로 미래 시각 행이 들어오면 경과일이 음수가 되어
+     * 최대 가중치(1.0)로 계산되고 콜드 스타트 가드의 행 수까지 부풀린다. 창 밖은 아예 읽지 않는다.
+     *
+     * @return 행: [childId(Number), createdAt(LocalDateTime, UTC)]
+     */
+    @Query("""
+            SELECT m.childId, m.createdAt FROM Memo m
+            WHERE m.childId IN (SELECT c.id FROM Child c WHERE c.classroomId = :classroomId)
+              AND m.createdAt >= :since AND m.createdAt < :end
+            """)
+    List<Object[]> findRecentMemoTimes(@Param("classroomId") Long classroomId,
+                                       @Param("since") LocalDateTime since,
+                                       @Param("end") LocalDateTime end);
+
     /** 타임라인: 특정 영역 필터(최신순). */
     List<Memo> findByChildIdAndCurriculumAreaOrderByCreatedAtDesc(Long childId, CurriculumArea area);
 

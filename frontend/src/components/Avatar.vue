@@ -7,6 +7,9 @@ const props = defineProps({
   size: { type: String, default: '' }, // '', 'sm', 'lg'
   photoUrl: { type: String, default: '' },           // 사진 바이트 API 경로 (예: /children/1/photo)
   photoKey: { type: [String, Number], default: '' },  // photoUpdatedAt — 캐시 키 + 사진 유무 판단
+  // 관찰 온도 링(spec-child-warmth). '' | 'WARM' | 'LOW'.
+  // 경고가 아니라 '진함 ↔ 옅음'으로만 표현한다 — 빈 값이면 링 없음(교사 아바타 등 기본).
+  warmth: { type: String, default: '' },
 })
 
 const AVA_COLORS = ['#EF9D5E', '#62AdD0', '#E0AE3C', '#B07FD6', '#5FBA86', '#E8897C', '#8089D2', '#D483AC']
@@ -25,7 +28,9 @@ const initial = computed(() => {
   return n.slice(n.length > 2 ? 1 : 0)
 })
 
-const cls = computed(() => 'jr-avatar' + (props.size ? ' jr-avatar--' + props.size : ''))
+const cls = computed(() => 'jr-avatar'
+  + (props.size ? ' jr-avatar--' + props.size : '')
+  + (props.warmth === 'WARM' ? ' ring-warm' : props.warmth === 'LOW' ? ' ring-low' : ''))
 
 // 사진: 인증 fetch → objectURL. 세션 내 모듈 캐시로 같은 사진(경로+갱신시각)은 한 번만 받는다.
 const photoCache = (window.__ondoPhotoCache ||= new Map())
@@ -61,4 +66,9 @@ watch(cacheKey, loadPhoto, { immediate: true })
 
 <style scoped>
 img.jr-avatar { object-fit: cover; display: inline-block; }
+
+/* 관찰 온도 링 — box-shadow 라 레이아웃을 밀지 않는다.
+   옅은 쪽도 '표식'이 아니라 '덜 칠해진' 느낌이어야 해서 경고색 없이 같은 노랑 계열의 농도 차만 준다. */
+.jr-avatar.ring-warm { box-shadow: 0 0 0 3px var(--brand-500); }
+.jr-avatar.ring-low { box-shadow: 0 0 0 3px var(--brand-100); }
 </style>

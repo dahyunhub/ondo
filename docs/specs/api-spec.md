@@ -50,6 +50,9 @@ related:
 | 17 | GET | `/api/v1/children/{childId}/reports` | 개인평가 목록(시간순) | FR-8 | 4.1 |
 | 18 | GET | `/api/v1/reports/{reportId}` | 개인평가 단건 | FR-8 | 4.1 |
 | 19 | GET | `/actuator/health` | 헬스체크 | — | 1.1/1.5 |
+| 20 | GET | `/api/v1/classrooms/{classroomId}/warmth` | 아이별 관찰 온도(최근 기록 밀도) | — | spec-child-warmth |
+| 21 | POST | `/api/v1/children/{childId}/warmth-snooze` | 온도 판정에서 잠시 접어두기(14일) | — | spec-child-warmth-snooze |
+| 22 | DELETE | `/api/v1/children/{childId}/warmth-snooze` | 접어두기 해제 | — | spec-child-warmth-snooze |
 
 > 월말 자동 평가(FR-9, Story 4.2)는 `@Scheduled` 내부 동작으로 엔드포인트 없음.
 
@@ -351,6 +354,66 @@ related:
 ### [18] GET `/api/v1/reports/{reportId}` — 평가 단건
 
 **Response 200**: content 포함 전체. **에러:** `404 REPORT_NOT_FOUND`.
+
+---
+
+## 6-1. 관찰 온도 (spec-child-warmth)
+
+### [20] GET `/api/v1/classrooms/{classroomId}/warmth` — 아이별 관찰 온도
+
+최근 14일(KST) 메모를 아이별로 반감기 5일 감쇠 집계해 `WARM`/`LOW` 2단계로 돌려준다. AI 호출·별도 테이블 없이 `memo.created_at` + `child` 만으로 계산한다. 담당 교사 본인 전용.
+
+**Response 200**
+
+```json
+{
+  "enabled": true,
+  "windowDays": 14,
+  "items": [
+    { "childId": 3, "level": "WARM" },
+    { "childId": 7, "level": "LOW" }
+  ]
+}
+```
+
+| 필드 | 설명 |
+|------|------|
+| `enabled` | 판정 가능 여부. `false`면 아직 근거가 모자란 상태(콜드 스타트·대상 아이 없음)이며 `items`는 빈 배열. **프론트는 온도 관련 UI를 통째로 숨긴다** — 안내 문구도 띄우지 않는다 |
+| `windowDays` | 판정 창(고정 14) |
+| `items[].level` | `WARM` \| `LOW` \| `SNOOZED`. 명단과 같은 가나다순. 온도순 정렬 아님 |
+| `items[].snoozedUntil` | `SNOOZED`일 때만 채워지는 접어두기 만료일(KST). 그 외 `null` |
+
+**판정 규칙**
+
+- 점수 = `Σ 0.5^(경과일/5)` — 단순 건수가 아니라 최근성 가중.
+- `LOW` = **반 평균 점수의 30% 미만**. 중앙값·상위 N% 같은 상대 순위로 가르지 않는다(그러면 항상 절반이 `LOW`가 된다). **고르게 기록한 반은 `LOW`가 0명인 것이 정상.**
+- `LOW` 는 **조건 없이 항상 최대 3명**. 후보가 더 많으면 점수가 가장 낮은 3명만 남긴다(동점은 `childId` 오름차순).
+- 등록 3일 미만 아이는 평균 계산에서 제외하고 `WARM` 취급(관찰 기회가 없었으므로).
+- 창 내 반 전체 메모 수 < 대상 아이 수 → `enabled:false`.
+
+> **점수·메모 건수는 응답에 싣지 않는다.** 숫자가 나가면 화면에서 등수가 되고, 인지 도구가 성적표로 바뀐다.
+
+**에러:** `404 CLASSROOM_NOT_FOUND`(타 교사 반 포함 — 존재 비노출), `401`(미인증).
+
+### [21] POST `/api/v1/children/{childId}/warmth-snooze` — 잠시 접어두기
+
+결석·입원 등으로 볼 기회가 없던 아이를 온도 판정에서 **14일간** 제외한다. 접힌 아이는 `[20]` 응답에서 `SNOOZED`로 나오고, 평균 계산·`LOW` 후보·콜드 스타트 행 수 어디에도 들어가지 않는다.
+
+**Request**: 본문 없음. **Response 204**.
+
+- 기간은 **고정 14일**(`오늘 + 14`, KST). 사용자 지정·무기한 없음.
+- 이미 접힌 아이를 다시 접으면 **오늘 기준으로 갱신**된다(누적 아님).
+- 만료일 **당일에는 이미 만료** — 자동으로 판정 대상에 돌아온다.
+
+> 자동 만료가 이 엔드포인트의 안전 속성이다. 무기한 스누즈를 두면 접어두고 잊은 아이가 안전망에서 영구히 빠지고, 월말 개인평가 재료가 없다는 걸 그때 알게 된다 — 온도 기능이 막으려던 사고 그 자체다.
+
+**에러:** `404 CHILD_NOT_FOUND`(타 교사 아이·숨긴 아이 포함), `401`.
+
+### [22] DELETE `/api/v1/children/{childId}/warmth-snooze` — 접어두기 해제
+
+`warmth_snoozed_until`을 비운다. 즉시 판정 대상으로 복귀. **멱등** — 접혀 있지 않아도 `204`.
+
+**에러:** `404 CHILD_NOT_FOUND`, `401`.
 
 ---
 
