@@ -65,6 +65,22 @@ public class ChildController {
         return ResponseEntity.noContent().build();
     }
 
+    /** 관찰 온도에서 잠시 접어두기(API [21]) — 14일 후 자동 만료. */
+    @PostMapping("/children/{childId}/warmth-snooze")
+    public ResponseEntity<Void> snoozeWarmth(@AuthenticationPrincipal Long teacherId,
+                                             @PathVariable Long childId) {
+        childService.snoozeWarmth(teacherId, childId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** 접어두기 해제(API [22]) — 즉시 판정 대상 복귀. 접혀 있지 않아도 204(멱등). */
+    @DeleteMapping("/children/{childId}/warmth-snooze")
+    public ResponseEntity<Void> clearWarmthSnooze(@AuthenticationPrincipal Long teacherId,
+                                                  @PathVariable Long childId) {
+        childService.clearWarmthSnooze(teacherId, childId);
+        return ResponseEntity.noContent().build();
+    }
+
     /** 숨김 해제(복원) — 명단에서 숨긴 아이를 다시 활성화. */
     @PostMapping("/children/{childId}/restore")
     public ChildResponse restoreChild(@AuthenticationPrincipal Long teacherId,

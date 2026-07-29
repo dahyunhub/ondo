@@ -6,6 +6,7 @@ import com.ondo.child.dto.ChildResponse;
 import com.ondo.classroom.ClassroomRepository;
 import com.ondo.common.exception.BusinessException;
 import com.ondo.common.exception.ErrorCode;
+import com.ondo.common.time.AppTime;
 import com.ondo.photo.ProfilePhotoService;
 import com.ondo.photo.domain.OwnerKind;
 import org.springframework.stereotype.Service;
@@ -82,6 +83,22 @@ public class ChildService {
         return childRepository.findById(childId)
                 .map(c -> ChildResponse.from(c, photoService.updatedAtOrNull(OwnerKind.CHILD, childId)))
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHILD_NOT_FOUND));
+    }
+
+    /**
+     * 관찰 온도에서 잠시 접어두기(spec-child-warmth-snooze). 결석 등으로 볼 기회가 없던 아이가
+     * 계속 LOW 로 뜨는 걸 막는다. 기간은 고정 14일이고 만료되면 자동으로 판정 대상에 돌아온다.
+     * 이미 접힌 아이를 다시 접으면 오늘 기준으로 갱신된다(누적 아님).
+     */
+    @Transactional
+    public void snoozeWarmth(Long teacherId, Long childId) {
+        findOwnedChild(teacherId, childId).snoozeWarmth(AppTime.today());
+    }
+
+    /** 접어두기 해제 — 즉시 판정 대상으로 돌아온다. 접혀 있지 않아도 성공(멱등). */
+    @Transactional
+    public void clearWarmthSnooze(Long teacherId, Long childId) {
+        findOwnedChild(teacherId, childId).clearWarmthSnooze();
     }
 
     /** 아이 소유권 검증(프로필 사진 등 외부 모듈에서 호출). 미존재/삭제/타 교사 → CHILD_NOT_FOUND. */

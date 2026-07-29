@@ -96,6 +96,7 @@ PRD §3 용어집의 5영역. `memo.curriculum_area`에 저장. **분류 전(자
 | `birth_date` | DATE | NOT NULL | 생년월일 |
 | `gender` | VARCHAR(10) | NOT NULL | 성별 enum `MALE`/`FEMALE`(한글 남/여는 프론트 매핑). **V2 추가** — 디자인 명단/등록 화면 정합 |
 | `token_alias` | VARCHAR(50) | NOT NULL | 저장형 가명(예: `아이A`). 등록 시 부여(FR-11). 비식별화 보조 식별자 — 상세는 §6 노트 |
+| `warmth_snoozed_until` | DATE | NULL | 관찰 온도 '잠시 접어두기' 만료일(KST). NULL=접히지 않음. 오늘 ≥ 이 날짜면 **이미 만료**(무기한 없음). 온도 판정에만 작용하고 명단·메모·평가에는 영향 없음. **V5 추가** — spec-child-warmth-snooze |
 | `deleted_at` | DATETIME(6) | NULL | soft delete 마커. NULL=활성 |
 | `created_at` | DATETIME(6) | NOT NULL | |
 | `updated_at` | DATETIME(6) | NOT NULL | |
@@ -215,6 +216,7 @@ CREATE TABLE child (
     name         VARCHAR(100) NOT NULL,
     birth_date   DATE         NOT NULL,
     token_alias  VARCHAR(50)  NOT NULL,
+    warmth_snoozed_until DATE NULL,
     deleted_at   DATETIME(6)  NULL,
     created_at   DATETIME(6)  NOT NULL,
     updated_at   DATETIME(6)  NOT NULL,

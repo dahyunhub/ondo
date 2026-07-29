@@ -20,7 +20,8 @@ const adding = ref(false)
 const showHidden = ref(false)
 const restoring = ref(false)
 const restoreError = ref('')
-const warmth = ref({}) // childId -> 'WARM' | 'LOW'. 비어 있으면 표시 안 함
+const warmth = ref({}) // childId -> 'WARM' | 'LOW' | 'SNOOZED'. 비어 있으면 표시 안 함
+const unsnoozing = ref(null)
 
 function fmtBirth(d) { return d ? d.replaceAll('-', '.') : '' }
 
@@ -57,6 +58,19 @@ async function loadWarmth() {
 }
 
 function openTimeline(c) { router.push({ name: 'timeline', params: { childId: c.id } }) }
+
+// 접어두기 해제 — 되돌리기 쉬운 동작이라 확인 단계를 두지 않는다.
+// 카드 클릭(타임라인)과 겹치지 않게 템플릿에서 @click.stop 으로 분리한다.
+async function unsnooze(c) {
+  if (unsnoozing.value) return
+  unsnoozing.value = c.id
+  try {
+    await api.del(`/children/${c.id}/warmth-snooze`)
+    await loadWarmth()
+  } catch { /* 실패하면 칩이 그대로 남는다 */ } finally {
+    unsnoozing.value = null
+  }
+}
 function onSaved() { adding.value = false; load(); loadHidden(); loadWarmth() }
 
 // 숨김 해제(복원) — 활성 명단으로 되돌린다.
@@ -108,9 +122,12 @@ onMounted(() => { load(); loadHidden(); loadWarmth() })
     <div v-else class="grid dt">
       <button v-for="c in children" :key="c.id" class="kid jr-card" @click="openTimeline(c)">
         <Avatar :name="c.name" size="lg" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''"
-                :warmth="warmth[c.id] || ''" />
+                :warmth="warmth[c.id] === 'SNOOZED' ? '' : (warmth[c.id] || '')" />
         <span class="kid-name">{{ c.name }}</span>
-        <span class="kid-chip">{{ fmtBirth(c.birthDate) }} · {{ c.gender === 'MALE' ? '남' : '여' }}</span>
+        <span v-if="warmth[c.id] === 'SNOOZED'" class="kid-chip snoozed"
+              :class="{ busy: unsnoozing === c.id }" role="button"
+              title="탭하면 다시 온도 판정에 포함돼요" @click.stop="unsnooze(c)">접어둠 · 해제</span>
+        <span v-else class="kid-chip">{{ fmtBirth(c.birthDate) }} · {{ c.gender === 'MALE' ? '남' : '여' }}</span>
       </button>
     </div>
   </div>
@@ -150,9 +167,12 @@ onMounted(() => { load(); loadHidden(); loadWarmth() })
       <div v-else class="grid">
         <button v-for="c in children" :key="c.id" class="kid jr-card" @click="openTimeline(c)">
           <Avatar :name="c.name" size="lg" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''"
-                  :warmth="warmth[c.id] || ''" />
+                  :warmth="warmth[c.id] === 'SNOOZED' ? '' : (warmth[c.id] || '')" />
           <span class="kid-name">{{ c.name }}</span>
-          <span class="kid-chip">{{ fmtBirth(c.birthDate) }} · {{ c.gender === 'MALE' ? '남' : '여' }}</span>
+          <span v-if="warmth[c.id] === 'SNOOZED'" class="kid-chip snoozed"
+                :class="{ busy: unsnoozing === c.id }" role="button"
+                title="탭하면 다시 온도 판정에 포함돼요" @click.stop="unsnooze(c)">접어둠 · 해제</span>
+          <span v-else class="kid-chip">{{ fmtBirth(c.birthDate) }} · {{ c.gender === 'MALE' ? '남' : '여' }}</span>
         </button>
       </div>
     </div>
@@ -215,6 +235,8 @@ onMounted(() => { load(); loadHidden(); loadWarmth() })
   display: inline-flex; align-items: center; font-size: 11.5px; font-weight: 700; padding: 5px 10px; border-radius: 999px;
   background: var(--surface-soft); color: var(--text-sub); font-variant-numeric: tabular-nums;
 }
+.kid-chip.snoozed { background: var(--brand-100); color: var(--brand-700); cursor: pointer; }
+.kid-chip.snoozed.busy { opacity: .5; cursor: default; }
 .muted { color: var(--text-sub); }
 .err { color: var(--warn); font-weight: 600; }
 .empty-box { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 40px 24px; }

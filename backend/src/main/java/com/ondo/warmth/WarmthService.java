@@ -75,10 +75,12 @@ public class WarmthService {
         LocalDate today = AppTime.today();
         List<Child> roster = childRepository.findByClassroomIdOrderByNameAscIdAsc(classroomId);
 
-        // 판정 대상 = 등록한 지 NEW_CHILD_DAYS 이상 된 아이. 오늘 등록한 아이가 무조건 LOW 로 뜨고
-        // 반 평균까지 끌어내리는 것을 막는다.
+        // 판정 대상에서 빠지는 둘: (1) 교사가 잠시 접어둔 아이 — 결석 등으로 볼 기회가 없었다,
+        // (2) 등록한 지 NEW_CHILD_DAYS 미만인 아이 — 오늘 등록한 아이가 무조건 LOW 로 뜨고
+        // 반 평균까지 끌어내리는 것을 막는다. 둘 다 평균 계산에도 들어가지 않는다.
         LocalDateTime newcomerFrom = AppTime.startOfDayUtc(today.minusDays(NEW_CHILD_DAYS - 1L));
         List<Child> target = roster.stream()
+                .filter(c -> !c.isWarmthSnoozed(today))
                 .filter(c -> c.getCreatedAt().isBefore(newcomerFrom))
                 .toList();
         if (target.isEmpty()) {
@@ -87,7 +89,11 @@ public class WarmthService {
 
         LocalDateTime since = AppTime.startOfDayUtc(today.minusDays(WINDOW_DAYS - 1L));
         LocalDateTime end = AppTime.startOfNextDayUtc(today); // 미래 시각 행이 최대 가중치로 새는 것 차단
-        List<Object[]> rows = memoRepository.findRecentMemoTimes(classroomId, since, end);
+        Set<Long> targetIds = target.stream().map(Child::getId).collect(Collectors.toSet());
+        // 판정 대상의 메모만 센다 — 접힌 아이·신규 아이의 기록이 콜드 스타트 가드를 대신 넘겨주면 안 된다.
+        List<Object[]> rows = memoRepository.findRecentMemoTimes(classroomId, since, end).stream()
+                .filter(row -> targetIds.contains(((Number) row[0]).longValue()))
+                .toList();
 
         // 콜드 스타트 가드 — 반 전체 기록량이 아이 수에도 못 미치면 아직 판정할 근거가 없다.
         // 가입 직후 전원이 옅게 뜨는 상황을 원천 차단하는 마지막 안전장치.
@@ -99,9 +105,12 @@ public class WarmthService {
         Set<Long> lowIds = pickLow(target, scores);
 
         // 응답은 명단 순서(가나다순) 그대로 — 온도순 정렬은 그 자체로 "못 본 아이 목록"이 된다.
+        // 접힘은 온도보다 우선한다(신규 아이가 접혀 있으면 SNOOZED 로 보인다).
         List<ChildWarmth> items = roster.stream()
-                .map(c -> new ChildWarmth(c.getId(),
-                        lowIds.contains(c.getId()) ? WarmthLevel.LOW : WarmthLevel.WARM))
+                .map(c -> c.isWarmthSnoozed(today)
+                        ? ChildWarmth.snoozed(c.getId(), c.getWarmthSnoozedUntil())
+                        : ChildWarmth.of(c.getId(),
+                                lowIds.contains(c.getId()) ? WarmthLevel.LOW : WarmthLevel.WARM))
                 .toList();
         return new WarmthResponse(true, WINDOW_DAYS, items);
     }

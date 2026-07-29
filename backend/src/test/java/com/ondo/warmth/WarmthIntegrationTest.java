@@ -416,10 +416,15 @@ class WarmthIntegrationTest extends IntegrationTestSupport {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enabled").value(true))
-                // 항목의 키는 childId·level 둘뿐 — 숫자가 새어 나가면 화면에서 등수가 된다.
-                .andExpect(jsonPath("$.items[0].*", hasSize(2)))
                 .andReturn().getResponse().getContentAsString();
 
+        // 허용된 키만 실린다 — 점수·건수가 새어 나가면 화면에서 등수가 된다.
+        // 개수가 아니라 이름을 고정해야 새 필드가 조용히 끼어드는 걸 잡는다.
+        Map<String, Object> body = objectMapper.readValue(json, Map.class);
+        for (Object item : (List<?>) body.get("items")) {
+            assertThat(((Map<?, ?>) item).keySet().stream().map(String::valueOf).toList())
+                    .containsExactlyInAnyOrder("childId", "level", "snoozedUntil");
+        }
         assertThat(json).doesNotContain("score").doesNotContain("count");
     }
 }

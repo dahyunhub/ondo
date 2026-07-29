@@ -10,6 +10,8 @@ import AppIcon from './AppIcon.vue'
 import WarmthMascot from './WarmthMascot.vue'
 
 defineProps({ children: { type: Array, required: true } })
+// 접어두기는 부모(HomeView)가 API 호출·목록 갱신까지 책임진다.
+const emit = defineEmits(['snooze'])
 
 const router = useRouter()
 function openMemo(c) { router.push({ name: 'memo', query: { childId: c.id } }) }
@@ -26,12 +28,18 @@ function openMemo(c) { router.push({ name: 'memo', query: { childId: c.id } }) }
       </div>
     </div>
     <div class="meet-list">
-      <button v-for="c in children" :key="c.id" class="meet-row" @click="openMemo(c)">
-        <Avatar :name="c.name" size="sm" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''" />
-        <span class="meet-name">{{ c.name }}</span>
-        <span class="meet-go">메모 남기기</span>
-        <AppIcon name="chevR" :size="16" />
-      </button>
+      <div v-for="c in children" :key="c.id" class="meet-row">
+        <button class="meet-main" @click="openMemo(c)">
+          <Avatar :name="c.name" size="sm" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''" />
+          <span class="meet-name">{{ c.name }}</span>
+          <span class="meet-go">메모 남기기</span>
+          <AppIcon name="chevR" :size="16" />
+        </button>
+        <!-- 결석 등으로 볼 기회가 없던 아이. 사유는 묻지 않는다 — '결석' 대신 '접어두기'. -->
+        <button class="meet-snooze" title="2주 동안 온도 판정에서 빼요" @click="emit('snooze', c)">
+          잠시 접어두기
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -45,11 +53,21 @@ function openMemo(c) { router.push({ name: 'memo', query: { childId: c.id } }) }
 
 .meet-list { display: flex; flex-direction: column; gap: 8px; }
 .meet-row {
-  display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border-radius: 14px;
-  background: var(--surface-soft); border: 1.5px solid var(--hair); color: var(--text);
-  font-family: inherit; text-align: left; cursor: pointer; transition: border-color .12s, background .12s;
+  border-radius: 14px; background: var(--surface-soft); border: 1.5px solid var(--hair);
+  transition: border-color .12s, background .12s; overflow: hidden;
 }
 .meet-row:hover { border-color: var(--brand-500); background: var(--brand-100); }
+.meet-main {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px;
+  background: transparent; border: none; color: var(--text);
+  font-family: inherit; text-align: left; cursor: pointer;
+}
+.meet-snooze {
+  display: block; width: 100%; padding: 6px 12px 8px; background: transparent; border: none;
+  border-top: 1px dashed var(--hair); font-family: inherit; font-size: 11.5px; font-weight: 700;
+  color: var(--text-faint); text-align: left; cursor: pointer;
+}
+.meet-snooze:hover { color: var(--text-sub); }
 .meet-name { font-size: 14.5px; font-weight: 800; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .meet-go { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--text-faint); white-space: nowrap; }
 .meet-row :deep(.jr-avatar) { width: 30px; height: 30px; font-size: 12px; }
