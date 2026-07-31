@@ -105,6 +105,60 @@ class ClassroomIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
 
+    // ---------- 반 연령(spec-classroom-age-birthdate) ----------
+
+    @Test
+    void 만_나이를_함께_등록하면_응답과_목록에_반영된다() throws Exception {
+        mockMvc.perform(post("/api/v1/classrooms").header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"별빛반\",\"year\":2026,\"ageClass\":4}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.ageClass").value(4));
+
+        mockMvc.perform(get("/api/v1/classrooms").header("Authorization", "Bearer " + tokenA))
+                .andExpect(jsonPath("$[?(@.name=='별빛반')].ageClass").value(org.hamcrest.Matchers.hasItem(4)));
+    }
+
+    @Test
+    void 만_나이는_선택_항목이라_없어도_생성된다() throws Exception {
+        // 혼합연령반이거나 아직 모르는 경우 — 필수로 만들면 등록 자체가 막힌다
+        mockMvc.perform(post("/api/v1/classrooms").header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"구름반\",\"year\":2026}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.ageClass").doesNotExist());
+    }
+
+    @Test
+    void 만_나이_경계값_0과_5는_허용된다() throws Exception {
+        for (int age : new int[]{0, 5}) {
+            mockMvc.perform(post("/api/v1/classrooms").header("Authorization", "Bearer " + tokenA)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":\"경계" + age + "반\",\"year\":2026,\"ageClass\":" + age + "}"))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.ageClass").value(age));
+        }
+    }
+
+    @Test
+    void 만_나이_범위_밖은_400이다() throws Exception {
+        for (String age : new String[]{"-1", "6"}) {
+            mockMvc.perform(post("/api/v1/classrooms").header("Authorization", "Bearer " + tokenA)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":\"범위밖" + age.replace("-", "m") + "반\",\"year\":2026,\"ageClass\":" + age + "}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        }
+    }
+
+    @Test
+    void 기존_반은_만_나이가_null_로_조회된다() throws Exception {
+        // 마이그레이션으로 값을 추측해 채우지 않는다 — 틀린 연도를 기본값으로 밀어주는 게 더 나쁘다
+        mockMvc.perform(get("/api/v1/classrooms").header("Authorization", "Bearer " + tokenA))
+                .andExpect(jsonPath("$[?(@.name=='햇살반')].ageClass")
+                        .value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.nullValue())));
+    }
+
     @Test
     void 토큰_없이_접근하면_401() throws Exception {
         mockMvc.perform(get("/api/v1/classrooms"))

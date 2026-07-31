@@ -35,18 +35,30 @@ public class Classroom extends BaseTimeEntity {
     @Column(name = "year", nullable = false)
     private Integer year;
 
+    /**
+     * 만 나이(0~5). NULL = 미지정·혼합연령반.
+     * 아이 생년월일 입력의 기본 표시 연도를 정하는 데만 쓰고, 입력을 제약하지는 않는다.
+     */
+    @Column(name = "age_class")
+    private Integer ageClass;
+
     /** 학년도 시작일. FR-8 평가 기간 기본 시작점. */
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
-    private Classroom(Long teacherId, String name, Integer year, LocalDate startDate) {
+    private Classroom(Long teacherId, String name, Integer year, Integer ageClass, LocalDate startDate) {
         this.teacherId = teacherId;
         this.name = name;
         this.year = year;
+        this.ageClass = ageClass;
         this.startDate = startDate;
     }
 
     public static Classroom create(Long teacherId, String name, Integer year, LocalDate startDate) {
-        return new Classroom(teacherId, name, year, startDate);
+        return new Classroom(teacherId, name, year, null, startDate);
+    }
+
+    public static Classroom create(Long teacherId, String name, Integer year, Integer ageClass, LocalDate startDate) {
+        return new Classroom(teacherId, name, year, ageClass, startDate);
     }
 }

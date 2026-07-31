@@ -146,11 +146,14 @@ related:
 **Response 200**
 ```json
 [
-  { "id": 10, "name": "햇살반", "year": 2026, "startDate": "2026-03-02", "childCount": 18 },
-  { "id": 7,  "name": "햇살반", "year": 2025, "startDate": "2025-03-02", "childCount": 20 }
+  { "id": 10, "name": "햇살반", "year": 2026, "ageClass": 4, "startDate": "2026-03-02", "childCount": 18 },
+  { "id": 7,  "name": "햇살반", "year": 2025, "ageClass": null, "startDate": "2025-03-02", "childCount": 20 }
 ]
 ```
 - `childCount`: soft delete 안 된 아이 수.
+- `ageClass`: 만 나이(0~5) 또는 `null`(미지정·혼합연령반). 프론트가 아이 생년월일 입력의 **기본 표시 연도**를 `year − (ageClass + 1)` 로 계산하는 데 쓴다. 값이 없으면 `year − 5`(만 4세)로 대체한다. **선택 범위를 제약하지는 않는다.**
+
+**반 생성 요청**(`POST /api/v1/classrooms`)도 `ageClass` 를 선택적으로 받는다 — `@Min(0) @Max(5)`, 생략 가능.
 
 ### [3] GET `/api/v1/classrooms/{classroomId}/children` — 아이 명단
 

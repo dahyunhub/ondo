@@ -42,8 +42,10 @@ public class ClassroomService {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "같은 학년도에 같은 이름의 반이 이미 있어요.");
         }
         LocalDate startDate = LocalDate.of(request.year(), 3, 2);
-        Classroom saved = classroomRepository.save(Classroom.create(teacherId, name, request.year(), startDate));
-        return new ClassroomResponse(saved.getId(), saved.getName(), saved.getYear(), saved.getStartDate(), 0L);
+        Classroom saved = classroomRepository.save(
+                Classroom.create(teacherId, name, request.year(), request.ageClass(), startDate));
+        return new ClassroomResponse(saved.getId(), saved.getName(), saved.getYear(),
+                saved.getAgeClass(), saved.getStartDate(), 0L);
     }
 
     private static ClassroomResponse toResponse(Object[] row) {
@@ -51,8 +53,9 @@ public class ClassroomService {
                 ((Number) row[0]).longValue(),
                 (String) row[1],
                 ((Number) row[2]).intValue(),
-                toLocalDate(row[3]),
-                ((Number) row[4]).longValue());
+                row[3] == null ? null : ((Number) row[3]).intValue(), // age_class — 미지정 반은 null
+                toLocalDate(row[4]),
+                ((Number) row[5]).longValue());
     }
 
     private static LocalDate toLocalDate(Object value) {
