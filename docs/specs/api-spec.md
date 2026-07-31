@@ -53,6 +53,8 @@ related:
 | 20 | GET | `/api/v1/classrooms/{classroomId}/warmth` | 아이별 관찰 온도(최근 기록 밀도) | — | spec-child-warmth |
 | 21 | POST | `/api/v1/children/{childId}/warmth-snooze` | 온도 판정에서 잠시 접어두기(14일) | — | spec-child-warmth-snooze |
 | 22 | DELETE | `/api/v1/children/{childId}/warmth-snooze` | 접어두기 해제 | — | spec-child-warmth-snooze |
+| 23 | POST | `/api/v1/auth/password-reset/request` | 비밀번호 재설정 링크 요청 | — | spec-password-reset |
+| 24 | POST | `/api/v1/auth/password-reset/confirm` | 비밀번호 재설정 확정 | — | spec-password-reset |
 
 > 월말 자동 평가(FR-9, Story 4.2)는 `@Scheduled` 내부 동작으로 엔드포인트 없음.
 
@@ -102,6 +104,36 @@ related:
 **Response 201** — `[1]` 로그인과 동일한 바디(`accessToken`, `tokenType`, `expiresIn`, `teacher`).
 
 **에러:** `400 VALIDATION_FAILED` · `409 EMAIL_ALREADY_EXISTS`(이미 가입된 이메일). 동시 가입 경쟁은 DB 유니크 제약으로 `409 DATA_CONFLICT` 처리.
+
+### [23] POST `/api/v1/auth/password-reset/request` — 재설정 링크 요청
+
+인증 불필요. 가입된 이메일이면 재설정 링크를 메일로 보낸다.
+
+**Request** `{ "email": "teacher@ondo.dev" }` · **Response 204**
+
+> ⚠️ **가입 여부와 무관하게 항상 204**, 본문도 동일하다. 응답이 갈리면 이 엔드포인트가 "이 이메일이 가입돼 있나?"를 알려주는 조회기가 된다. 메일 발송이 실패해도 204 를 유지한다(실패는 서버 로그로만).
+
+- 링크 유효기간 **30분**, **1회용**.
+- 재요청하면 **이전 링크는 즉시 무효**가 된다.
+- **카카오 전용 계정**(비밀번호 없음)은 토큰을 만들지 않고 "카카오로 로그인하세요" 안내 메일만 보낸다. 응답은 동일.
+
+**에러:** `400 VALIDATION_FAILED`(이메일 형식).
+
+### [24] POST `/api/v1/auth/password-reset/confirm` — 재설정 확정
+
+인증 불필요. 링크의 토큰으로 비밀번호를 교체한다. **자동 로그인하지 않는다.**
+
+**Request** `{ "token": "...", "newPassword": "••••••••" }` · **Response 204**
+
+| 필드 | 검증 |
+|------|------|
+| `token` | `@NotBlank` |
+| `newPassword` | `@NotBlank`, `@Size(min=8)`, `@MaxBytes(72)` — 가입과 동일 |
+
+- 성공 시 해당 계정의 **남은 재설정 링크도 모두 폐기**된다.
+- 비밀번호 검증 실패(400)로 끝나면 **토큰은 그대로 살아 있다** — 메일을 다시 받지 않아도 재시도할 수 있다.
+
+**에러:** `400 VALIDATION_FAILED` · `400 RESET_TOKEN_INVALID`(만료·재사용·위조를 **구분하지 않음**).
 
 ---
 

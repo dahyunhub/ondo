@@ -105,6 +105,21 @@ PRD §3 용어집의 5영역. `memo.curriculum_area`에 저장. **분류 전(자
 - INDEX `idx_child_classroom`(`classroom_id`).
 - 조회 시 `@SQLRestriction("deleted_at is null")`로 삭제 아동 제외. 명단은 `name` 가나다순 정렬(FR-11, ORDER BY name).
 
+### 3.3b `password_reset_token` (spec-password-reset, **V6 추가**)
+
+| 컬럼 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| `id` | BIGINT | PK, AUTO_INCREMENT | |
+| `teacher_id` | BIGINT | NOT NULL, FK→`teacher.id` | 대상 계정 |
+| `token_hash` | CHAR(64) | NOT NULL, UNIQUE | **원문 토큰의 SHA-256 hex.** 원문은 저장하지 않는다 |
+| `expires_at` | DATETIME(6) | NOT NULL | 발급 + 30분 |
+| `used_at` | DATETIME(6) | NULL | 사용·무효화 시각. NULL=아직 유효 |
+| `created_at` / `updated_at` | DATETIME(6) | NOT NULL | |
+
+- **원문 미저장이 이 테이블의 존재 이유다.** 난수는 메일에만 실리고 DB 에는 해시만 남아, DB 가 유출돼도 남의 비밀번호를 바꿀 수 없다.
+- 유효 조건: `used_at IS NULL AND now < expires_at`. 재발급·비밀번호 변경 시 남은 토큰을 `used_at` 으로 일괄 무효화한다.
+- soft delete 대상 아님(자산이 아니라 단기 크리덴셜).
+
 ### 3.4 `memo` (FR-1, FR-2, FR-7, NFR-5)
 
 | 컬럼 | 타입 | 제약 | 설명 |

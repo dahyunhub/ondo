@@ -20,6 +20,7 @@ public enum ErrorCode {
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "입력값을 확인해 주세요."),
     MEMO_EMPTY(HttpStatus.BAD_REQUEST, "내용 또는 항목 중 하나 이상을 입력해 주세요."),
     INVALID_CURRICULUM_AREA(HttpStatus.BAD_REQUEST, "누리과정 영역 값이 올바르지 않아요."),
+    RESET_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "링크가 만료되었거나 이미 사용된 링크예요. 비밀번호 재설정을 다시 요청해 주세요."),
 
     // NOT_FOUND
     TEACHER_NOT_FOUND(HttpStatus.NOT_FOUND, "교사를 찾을 수 없어요."),

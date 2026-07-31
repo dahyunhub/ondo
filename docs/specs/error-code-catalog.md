@@ -71,6 +71,7 @@ related:
 | `VALIDATION_FAILED` | 400 | 입력값을 확인해 주세요. | Bean Validation 위반(`@Valid`) |
 | `MEMO_EMPTY` | 400 | 내용 또는 항목 중 하나 이상을 입력해 주세요. | FR-1: content/3항목 모두 비어 있음 |
 | `INVALID_CURRICULUM_AREA` | 400 | 누리과정 영역 값이 올바르지 않아요. | 영역 enum 외 값 |
+| `RESET_TOKEN_INVALID` | 400 | 링크가 만료되었거나 이미 사용된 링크예요… | 재설정 토큰 만료·재사용·위조 (**세 경우를 구분하지 않는다**) |
 
 ### 3.3 리소스 부재 (NOT_FOUND)
 
@@ -124,6 +125,7 @@ public enum ErrorCode {
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "입력값을 확인해 주세요."),
     MEMO_EMPTY(HttpStatus.BAD_REQUEST, "내용 또는 항목 중 하나 이상을 입력해 주세요."),
     INVALID_CURRICULUM_AREA(HttpStatus.BAD_REQUEST, "누리과정 영역 값이 올바르지 않아요."),
+    RESET_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "링크가 만료되었거나 이미 사용된 링크예요. 비밀번호 재설정을 다시 요청해 주세요."),
 
     // NOT_FOUND
     TEACHER_NOT_FOUND(HttpStatus.NOT_FOUND, "교사를 찾을 수 없어요."),
