@@ -24,6 +24,20 @@ spring:
       hibernate:
         format_sql: true
 
+  mail:
+    # SMTP. 미설정이면 비-prod 는 LoggingMailSender 가 동작하므로 개발에 지장 없다.
+    # 제공자를 바꿔도(Gmail → Resend/SES 등) 여기 값만 갈아끼우면 코드는 그대로다.
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -49,6 +63,11 @@ ondo:
     token-uri: ${KAKAO_TOKEN_URI:https://kauth.kakao.com/oauth/token}
     user-uri: ${KAKAO_USER_URI:https://kapi.kakao.com/v2/user/me}
     timeout-seconds: ${KAKAO_TIMEOUT_SECONDS:5}
+  mail:
+    # 발신자 주소와 재설정 링크가 가리킬 프론트 주소.
+    # 도메인을 구입하면 base-url 값만 바꾸면 된다(코드 변경 없음).
+    from: ${MAIL_FROM:no-reply@ondo.local}
+    base-url: ${APP_BASE_URL:http://localhost:5273}
   report:
     # 월말 자동 개인평가(FR-9) 실행 주기. Spring cron — L=말일.
     # 기본값 "-" = 비활성(Scheduled.CRON_DISABLED). 평가 생성은 교사 수동(POST /children/{id}/reports)으로만.
@@ -56,6 +75,13 @@ ondo:
     monthly-cron: ${REPORT_MONTHLY_CRON:-}
 
 management:
+  health:
+    mail:
+      # 메일 health check 비활성. spring-boot-starter-mail 을 추가하면 자동 등록되는데,
+      # SMTP 가 비어 있는 개발 환경에서 /actuator/health 가 통째로 DOWN 이 된다.
+      # 컨테이너 healthcheck 와 deploy.sh 가 이 엔드포인트를 보므로 배포까지 막힌다.
+      # 메일은 실패해도 삼키는 best-effort 의존성이라(MailSender 계약) 앱 생사와 묶지 않는다.
+      enabled: false
   endpoints:
     web:
       exposure:
@@ -94,6 +120,13 @@ logging:
 
 # prod: 운영 정보 최소 노출 — health 만, 세부는 숨김.
 management:
+  health:
+    mail:
+      # 메일 health check 비활성. spring-boot-starter-mail 을 추가하면 자동 등록되는데,
+      # SMTP 가 비어 있는 개발 환경에서 /actuator/health 가 통째로 DOWN 이 된다.
+      # 컨테이너 healthcheck 와 deploy.sh 가 이 엔드포인트를 보므로 배포까지 막힌다.
+      # 메일은 실패해도 삼키는 best-effort 의존성이라(MailSender 계약) 앱 생사와 묶지 않는다.
+      enabled: false
   endpoints:
     web:
       exposure:

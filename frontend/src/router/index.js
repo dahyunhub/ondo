@@ -4,6 +4,7 @@ import { session } from '../stores/session'
 
 import LoginView from '../views/LoginView.vue'
 import KakaoCallbackView from '../views/KakaoCallbackView.vue'
+import PasswordResetView from '../views/PasswordResetView.vue'
 import ClassroomsView from '../views/ClassroomsView.vue'
 import HomeView from '../views/HomeView.vue'
 import ChildrenView from '../views/ChildrenView.vue'
@@ -16,6 +17,8 @@ import MeView from '../views/MeView.vue'
 const routes = [
   { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
   { path: '/oauth/kakao/callback', name: 'kakao-callback', component: KakaoCallbackView, meta: { public: true } },
+  // 메일 링크로 들어오는 화면이라 로그인 없이 접근할 수 있어야 한다(비밀번호를 잊은 사람은 토큰이 없다).
+  { path: '/reset-password', name: 'reset-password', component: PasswordResetView, meta: { public: true } },
   { path: '/classrooms', name: 'classrooms', component: ClassroomsView },
   { path: '/', name: 'home', component: HomeView, meta: { needsClassroom: true, shell: true } },
   { path: '/memo', name: 'memo', component: MemoView, meta: { needsClassroom: true, shell: true } },

@@ -25,6 +25,43 @@ const error = ref('')
 function switchTab(t) {
   tab.value = t
   error.value = ''
+  forgot.value = false
+  forgotSent.value = false
+}
+
+// 비밀번호 찾기 — 재설정 링크 요청.
+// 응답은 가입 여부와 무관하게 항상 같으므로(계정 열거 방지), 화면 문구도 하나뿐이다.
+const forgot = ref(false)
+const forgotEmail = ref('')
+const forgotSent = ref(false)
+
+function openForgot() {
+  forgot.value = true
+  forgotSent.value = false
+  error.value = ''
+  forgotEmail.value = email.value // 로그인 칸에 쓰던 주소를 그대로 가져온다
+}
+
+function closeForgot() {
+  forgot.value = false
+  error.value = ''
+}
+
+async function submitForgot() {
+  error.value = ''
+  if (!forgotEmail.value) {
+    error.value = '이메일을 입력해 주세요.'
+    return
+  }
+  loading.value = true
+  try {
+    await api.post('/auth/password-reset/request', { email: forgotEmail.value }, { auth: false })
+    forgotSent.value = true
+  } catch (e) {
+    error.value = e instanceof ApiError ? e.message : '요청 중 문제가 발생했어요.'
+  } finally {
+    loading.value = false
+  }
 }
 
 // 카카오 인가 페이지로 리다이렉트. redirect_uri 는 콜백 뷰와 동일하게 origin 기준으로 계산한다
@@ -129,7 +166,7 @@ async function submitSignup() {
         </div>
 
         <!-- 로그인 폼 -->
-        <form v-if="tab === 'login'" class="form" @submit.prevent="submit">
+        <form v-if="tab === 'login' && !forgot" class="form" @submit.prevent="submit">
           <div>
             <label class="jr-field-label">이메일</label>
             <input v-model="email" class="jr-input" type="email" placeholder="teacher@ondo.dev" autocomplete="username" />
@@ -140,7 +177,7 @@ async function submitSignup() {
             <div class="keep-row">
               <span class="keep-box"><AppIcon name="check" :size="12" :stroke="3" /></span>
               <span class="keep-lab">로그인 상태 유지</span>
-              <span class="find">비밀번호 찾기</span>
+              <button type="button" class="find" @click="openForgot">비밀번호 찾기</button>
             </div>
           </div>
 
@@ -150,6 +187,29 @@ async function submitSignup() {
             <template v-if="!loading">로그인 <AppIcon name="chevR" :size="20" /></template>
             <template v-else>로그인 중…</template>
           </button>
+        </form>
+
+        <!-- 비밀번호 찾기 -->
+        <form v-else-if="tab === 'login' && forgot" class="form" @submit.prevent="submitForgot">
+          <template v-if="!forgotSent">
+            <p class="forgot-lead">가입하신 이메일로 재설정 링크를 보내 드릴게요.</p>
+            <div>
+              <label class="jr-field-label">이메일</label>
+              <input v-model="forgotEmail" class="jr-input" type="email" placeholder="teacher@ondo.dev" autocomplete="username" />
+            </div>
+            <p v-if="error" class="err">{{ error }}</p>
+            <button class="jr-btn jr-btn--primary jr-btn--block jr-btn--lg" type="submit" :disabled="loading">
+              <template v-if="!loading">재설정 링크 받기 <AppIcon name="chevR" :size="20" /></template>
+              <template v-else>보내는 중…</template>
+            </button>
+          </template>
+          <!-- 가입 여부를 알려주지 않는다 — 문구가 갈리면 그 자체로 계정 조회기가 된다. -->
+          <div v-else class="jr-banner forgot-done">
+            <AppIcon name="check" :size="22" :stroke="2.4" style="color:var(--brand-700);flex:0 0 auto" />
+            <span>입력하신 주소로 가입된 계정이 있다면 재설정 링크를 보내 드렸어요.
+              메일함을 확인해 주세요. 링크는 30분 동안만 쓸 수 있어요.</span>
+          </div>
+          <button type="button" class="back-login" @click="closeForgot">로그인으로 돌아가기</button>
         </form>
 
         <!-- 회원가입 폼 -->
@@ -232,7 +292,12 @@ async function submitSignup() {
   display: flex; align-items: center; justify-content: center; color: var(--brand-700); flex: 0 0 auto;
 }
 .keep-lab { font-size: 13.5px; color: var(--text-sub); font-weight: 600; }
-.find { margin-left: auto; font-size: 13.5px; color: var(--text-sub); font-weight: 600; cursor: pointer; }
+.find { margin-left: auto; font-size: 13.5px; color: var(--text-sub); font-weight: 600; cursor: pointer;
+  border: none; background: transparent; font-family: inherit; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+.forgot-lead { font-size: 14px; color: var(--text-sub); margin: 0; line-height: 1.55; }
+.forgot-done { font-size: 13.5px; font-weight: 600; line-height: 1.55; text-align: left; }
+.back-login { border: none; background: transparent; font-family: inherit; font-size: 13.5px; font-weight: 700;
+  color: var(--text-sub); cursor: pointer; padding: 10px; }
 .err { color: var(--warn); font-size: 13.5px; font-weight: 600; margin: -4px 2px 0; }
 
 /* 소셜 로그인 */
