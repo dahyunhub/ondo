@@ -1,5 +1,5 @@
 <script setup>
-// 마이 — 프로필(이름·비밀번호 수정) · 반 전환 · 설정. (알림/내보내기/도움말은 추후)
+// 마이 — 프로필(이름·비밀번호 수정) · 반 전환 · 설정 · 도움말(FAQ). (알림/내보내기는 추후)
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, ApiError } from '../lib/api'
@@ -9,9 +9,12 @@ import { useViewport } from '../lib/useViewport'
 import Avatar from '../components/Avatar.vue'
 import AppIcon from '../components/AppIcon.vue'
 import ImageCropper from '../components/ImageCropper.vue'
+import FaqAccordion from '../components/FaqAccordion.vue'
 
 const router = useRouter()
 const { isDesktop } = useViewport()
+
+const helpOpen = ref(false)
 
 const teacher = computed(() => auth.teacher || {})
 const teacherName = computed(() => teacher.value.name || '선생님')
@@ -184,11 +187,12 @@ onMounted(() => {})
           <div class="r-tx"><div class="r-label">기록 내보내기</div></div>
           <AppIcon name="chevR" :size="18" class="r-chev" />
         </button>
-        <button class="row" @click="notReady('도움말')">
+        <button class="row" :aria-expanded="helpOpen" @click="helpOpen = !helpOpen">
           <AppIcon name="help" :size="21" class="r-ic" />
-          <div class="r-tx"><div class="r-label">도움말</div></div>
-          <AppIcon name="chevR" :size="18" class="r-chev" />
+          <div class="r-tx"><div class="r-label">도움말</div><div class="r-sub">자주 묻는 질문</div></div>
+          <AppIcon name="chevD" :size="18" class="r-chev" :class="{ up: helpOpen }" />
         </button>
+        <FaqAccordion v-if="helpOpen" class="faq-inset" />
         <button class="row danger" @click="logout">
           <AppIcon name="logout" :size="21" class="r-ic" />
           <div class="r-tx"><div class="r-label">로그아웃</div></div>
@@ -324,7 +328,10 @@ onMounted(() => {})
 .r-tx { min-width: 0; }
 .r-label { font-size: 15px; font-weight: 600; white-space: nowrap; }
 .r-sub { font-size: 12.5px; color: var(--text-sub); font-weight: 600; white-space: nowrap; margin-top: 2px; }
-.r-chev { margin-left: auto; color: var(--text-faint); flex: 0 0 auto; }
+.r-chev.up { transform: rotate(180deg); }
+.r-chev { margin-left: auto; color: var(--text-faint); flex: 0 0 auto; transition: transform .18s ease; }
+/* 도움말 아코디언 — 설정 카드 안, 행보다 살짝 안쪽으로 들여 구분한다. */
+.faq-inset { padding: 0 14px 6px; }
 .row.danger .r-ic, .row.danger .r-label { color: var(--warn); }
 
 /* 모달 */
