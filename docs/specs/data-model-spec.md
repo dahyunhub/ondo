@@ -79,6 +79,7 @@ PRD §3 용어집의 5영역. `memo.curriculum_area`에 저장. **분류 전(자
 | `teacher_id` | BIGINT | NOT NULL, FK→`teacher.id`(`fk_classroom_teacher`) | 소유 교사 |
 | `name` | VARCHAR(100) | NOT NULL | 반 이름(예: 햇살반) |
 | `year` | INT | NOT NULL | 학년도. 같은 이름이라도 year로 구분 |
+| `age_class` | INT | NULL | 만 나이(0~5). NULL=미지정·혼합연령반. **아이 생년월일 입력의 기본 표시 연도**를 정하는 데만 쓰고 선택을 제약하지 않는다. 출생연도 = `year − (age_class + 1)`. **V7 추가** — spec-classroom-age-birthdate |
 | `start_date` | DATE | NOT NULL | **학년도 시작일**. FR-8 평가 기간 기본 시작점 |
 | `created_at` | DATETIME(6) | NOT NULL | |
 | `updated_at` | DATETIME(6) | NOT NULL | |

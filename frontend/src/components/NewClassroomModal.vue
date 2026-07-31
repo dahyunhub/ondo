@@ -5,12 +5,14 @@ import { reactive, ref, onBeforeUnmount } from 'vue'
 import { api, ApiError } from '../lib/api'
 import AppIcon from './AppIcon.vue'
 import Avatar from './Avatar.vue'
+import BirthDatePicker from './BirthDatePicker.vue'
+import { birthYearFor, AGE_CLASS_OPTIONS } from '../lib/birthYear'
 import ImageCropper from './ImageCropper.vue'
 
 const emit = defineEmits(['close', 'created'])
 
 const nowYear = new Date().getFullYear()
-const form = reactive({ name: '', year: nowYear })
+const form = reactive({ name: '', year: nowYear, ageClass: null })
 
 // uid: v-for 안정 키 + 크롭 대상 추적용. 행 삭제/재정렬 시 인덱스가 밀려도 사진이 엉뚱한 아이에 붙지 않도록.
 let uidSeq = 0
@@ -63,7 +65,8 @@ async function submit() {
 
   saving.value = true
   try {
-    const classroom = await api.post('/classrooms', { name: form.name.trim(), year: form.year })
+    const classroom = await api.post('/classrooms',
+      { name: form.name.trim(), year: form.year, ageClass: form.ageClass })
     // 아이들 순차 등록(반 생성 후). 일부 실패해도 반은 이미 생성됨.
     let failed = 0
     for (const c of filled) {
@@ -105,6 +108,18 @@ async function submit() {
           </div>
         </div>
 
+        <div>
+          <label class="jr-field-label">만 나이 <span class="opt">선택</span></label>
+          <div class="ages">
+            <button v-for="a in AGE_CLASS_OPTIONS" :key="a" type="button" class="jr-toggle age"
+                    :class="{ 'is-on': form.ageClass === a }" @click="form.ageClass = a">만 {{ a }}세</button>
+            <button type="button" class="jr-toggle age" :class="{ 'is-on': form.ageClass === null }"
+                    @click="form.ageClass = null">혼합·미정</button>
+          </div>
+          <!-- 고르면 아래 아이들의 생년월일이 그 연령에 맞는 연도부터 보인다. 다른 연도도 그대로 고를 수 있다. -->
+          <p class="age-hint">고르면 아이 생년월일이 <b>{{ birthYearFor(form.year, form.ageClass) }}년</b>부터 보여요. 다른 연도도 선택할 수 있어요.</p>
+        </div>
+
         <div class="kids-head">
           <span class="kids-t">아이 명단</span>
           <span class="kids-note">나중에 추가해도 돼요</span>
@@ -121,9 +136,11 @@ async function submit() {
               <input v-model="c.name" class="jr-input" placeholder="이름" />
               <button class="kid-x" @click="removeChild(i)" aria-label="삭제"><AppIcon name="x" :size="16" /></button>
             </div>
+            <!-- 생년월일은 셀렉트 3개라 성별과 한 줄에 두면 375px 에서 연도가 잘린다. -->
+            <BirthDatePicker v-model="c.birthDate" class="kid-birth"
+                             :default-year="birthYearFor(form.year, form.ageClass)" :classroom-year="form.year" />
             <div class="kid-line">
-              <input v-model="c.birthDate" class="jr-input" type="date" />
-              <div class="sex">
+              <div class="sex grow">
                 <button type="button" class="jr-toggle" :class="{ 'is-on': c.gender === 'MALE' }" @click="c.gender = 'MALE'">남</button>
                 <button type="button" class="jr-toggle" :class="{ 'is-on': c.gender === 'FEMALE' }" @click="c.gender = 'FEMALE'">여</button>
               </div>
@@ -155,6 +172,11 @@ async function submit() {
 .row2 { display: flex; gap: 12px; }
 .grow { flex: 1; }
 .yearbox { width: 110px; flex: 0 0 auto; }
+.opt { font-weight: 600; color: var(--text-faint); font-size: 12px; }
+.ages { display: flex; flex-wrap: wrap; gap: 6px; }
+.age { cursor: pointer; font-size: 13px; padding: 7px 12px; }
+.age-hint { font-size: 12px; color: var(--text-sub); margin: 8px 0 0; line-height: 1.5; }
+.kid-birth { margin-top: 8px; }
 .kids-head { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; }
 .kids-t { font-size: 13px; font-weight: 800; color: var(--text-sub); }
 .kids-note { font-size: 11.5px; color: var(--text-faint); }

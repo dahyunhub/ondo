@@ -4,6 +4,9 @@ import { api, ApiError } from '../lib/api'
 import AppIcon from './AppIcon.vue'
 import Avatar from './Avatar.vue'
 import ImageCropper from './ImageCropper.vue'
+import BirthDatePicker from './BirthDatePicker.vue'
+import { session } from '../stores/session'
+import { birthYearFor } from '../lib/birthYear'
 
 const props = defineProps({
   mode: { type: String, required: true },      // 'add' | 'edit'
@@ -19,6 +22,11 @@ const form = reactive({
 })
 const saving = ref(false)
 const deleting = ref(false)
+
+// 생년월일 기본 표시 연도 — 반 연령으로 계산한다(오늘 날짜 아님).
+// 수정 모드에서는 저장된 값이 우선이라 이 값이 쓰이지 않는다.
+const classroomYear = session.classroom?.year ?? null
+const defaultBirthYear = birthYearFor(classroomYear, session.classroom?.ageClass ?? null)
 const error = ref('')
 
 // 프로필 사진(크롭) — 신규 크롭 blob 은 저장 시 업로드.
@@ -122,7 +130,8 @@ async function confirmDelete() {
           </div>
           <div>
             <label class="jr-field-label">생년월일</label>
-            <input v-model="form.birthDate" class="jr-input" type="date" />
+            <BirthDatePicker v-model="form.birthDate"
+                             :default-year="defaultBirthYear" :classroom-year="classroomYear" />
           </div>
           <div>
             <label class="jr-field-label">성별</label>
