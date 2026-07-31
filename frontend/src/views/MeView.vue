@@ -45,26 +45,45 @@ function pickClass(c) {
 }
 function notReady(label) { toast.value = `${label}은 곧 제공돼요`; setTimeout(() => (toast.value = ''), 1600) }
 
-// 프로필 사진 — 파일 선택 → 크롭 → 업로드 → auth.teacher 갱신(아바타 즉시 반영).
+function showToast(msg) { toast.value = msg; setTimeout(() => (toast.value = ''), 1600) }
+
+// 프로필 사진 — '프로필 수정' 모달 안에서 편집한다(카드의 즉석 + 버튼 제거).
+// 변경·삭제 모두 '저장하기' 시점에 이름과 함께 반영 — 취소하면 사진도 그대로다.
 const fileInput = ref(null)
 const cropFile = ref(null)
+const pendingBlob = ref(null)
+const pendingPreview = ref('')
+const photoRemoved = ref(false)
+const hasSavedPhoto = computed(() => !!teacher.value.photoUpdatedAt)
+const showSavedPhoto = computed(() => hasSavedPhoto.value && !photoRemoved.value)
+const canRemovePhoto = computed(() => !!pendingPreview.value || showSavedPhoto.value)
 function pickPhoto(e) {
   const f = e.target.files?.[0]
   e.target.value = ''
   if (f) cropFile.value = f
 }
-async function onCropped(blob) {
+function onCropped(blob) {
+  pendingBlob.value = blob
+  if (pendingPreview.value) URL.revokeObjectURL(pendingPreview.value)
+  pendingPreview.value = URL.createObjectURL(blob)
+  photoRemoved.value = false
   cropFile.value = null
-  try {
-    const res = await api.putBinary('/teachers/me/photo', blob, 'image/jpeg')
-    auth.updateTeacher({ photoUpdatedAt: res.photoUpdatedAt })
-    toast.value = '프로필 사진을 변경했어요'
-  } catch (e) {
-    toast.value = e instanceof ApiError ? e.message : '사진 변경에 실패했어요.'
-  }
-  setTimeout(() => (toast.value = ''), 1600)
 }
-function showToast(msg) { toast.value = msg; setTimeout(() => (toast.value = ''), 1600) }
+function removePhoto() {
+  if (pendingPreview.value) {
+    URL.revokeObjectURL(pendingPreview.value)
+    pendingPreview.value = ''
+    pendingBlob.value = null
+    return
+  }
+  photoRemoved.value = true
+}
+function resetPhotoStaging() {
+  if (pendingPreview.value) URL.revokeObjectURL(pendingPreview.value)
+  pendingPreview.value = ''
+  pendingBlob.value = null
+  photoRemoved.value = false
+}
 
 // 이름 수정 시트 — 성공 시 auth.updateTeacher 로 아바타·사이드바 즉시 반영.
 const editOpen = ref(false)
@@ -74,10 +93,11 @@ const editBusy = ref(false)
 function openEdit() {
   editName.value = teacher.value.name || ''
   editErr.value = ''
+  resetPhotoStaging()
   editOpen.value = true
 }
 // 요청 진행 중엔 닫기 무시 — "취소했는데 변경됨" 방지
-function closeEdit() { if (!editBusy.value) editOpen.value = false }
+function closeEdit() { if (!editBusy.value) { resetPhotoStaging(); editOpen.value = false } }
 async function saveName() {
   if (editBusy.value) return
   const name = editName.value.trim()
@@ -85,9 +105,18 @@ async function saveName() {
   editBusy.value = true
   try {
     const res = await api.patch('/teachers/me', { name })
-    auth.updateTeacher({ name: res.name })
+    const patch = { name: res.name }
+    if (pendingBlob.value) {
+      const up = await api.putBinary('/teachers/me/photo', pendingBlob.value, 'image/jpeg')
+      patch.photoUpdatedAt = up.photoUpdatedAt
+    } else if (photoRemoved.value) {
+      await api.del('/teachers/me/photo')
+      patch.photoUpdatedAt = null
+    }
+    auth.updateTeacher(patch)
+    resetPhotoStaging()
     editOpen.value = false
-    showToast('이름을 변경했어요')
+    showToast('프로필을 저장했어요')
   } catch (e) {
     editErr.value = e instanceof ApiError ? e.message : '저장 중 문제가 발생했어요.'
   } finally { editBusy.value = false }
@@ -140,11 +169,8 @@ onMounted(() => {})
     <div :class="isDesktop ? 'me-col' : 'screen body'">
       <!-- 프로필 -->
       <div class="jr-card profile">
-        <button type="button" class="avatar-btn" @click="fileInput?.click()" aria-label="프로필 사진 변경">
-          <Avatar :name="teacherName" size="lg"
-                  photo-url="/teachers/me/photo" :photo-key="teacher.photoUpdatedAt || ''" />
-          <span class="cam"><AppIcon name="plus" :size="13" :stroke="2.8" /></span>
-        </button>
+        <Avatar :name="teacherName" size="lg"
+                photo-url="/teachers/me/photo" :photo-key="teacher.photoUpdatedAt || ''" />
         <div class="p-info">
           <div class="p-name" :class="{ big: isDesktop }">{{ teacherName }} 선생님</div>
           <div class="p-email">{{ teacherEmail || '—' }}</div>
@@ -152,7 +178,6 @@ onMounted(() => {})
         <button class="jr-btn jr-btn--secondary jr-btn--sm" @click="openEdit">
           <AppIcon name="pencil" :size="15" :stroke="2.4" /> {{ isDesktop ? '프로필 수정' : '수정' }}
         </button>
-        <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="pickPhoto" />
       </div>
 
       <!-- 지난 반 보는 중 배너 -->
@@ -235,6 +260,22 @@ onMounted(() => {})
           <button class="close" @click="closeEdit"><AppIcon name="x" :size="18" /></button>
         </div>
         <div class="form">
+          <!-- 프로필 사진 — 변경·삭제 모두 저장 시점에 반영(취소하면 그대로) -->
+          <div class="photo-row">
+            <img v-if="pendingPreview" class="jr-avatar jr-avatar--lg photo-prev" :src="pendingPreview" alt="미리보기" />
+            <Avatar v-else :name="teacherName" size="lg"
+                    :photo-url="showSavedPhoto ? '/teachers/me/photo' : ''"
+                    :photo-key="showSavedPhoto ? (teacher.photoUpdatedAt || '') : ''" />
+            <div class="photo-actions">
+              <button type="button" class="jr-btn jr-btn--secondary jr-btn--sm" @click="fileInput?.click()">
+                <AppIcon name="plus" :size="16" :stroke="2.6" />
+                {{ pendingPreview || showSavedPhoto ? '사진 변경' : '사진 추가' }}
+              </button>
+              <button v-if="canRemovePhoto" type="button" class="photo-del" @click="removePhoto">사진 삭제</button>
+              <span v-else-if="photoRemoved" class="photo-note">저장하면 사진이 지워져요</span>
+            </div>
+            <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="pickPhoto" />
+          </div>
           <div>
             <label class="jr-field-label">이름</label>
             <input v-model="editName" class="jr-input" maxlength="100" placeholder="이름을 입력해 주세요" @keyup.enter="saveName" />
@@ -293,8 +334,12 @@ onMounted(() => {})
 </template>
 
 <style scoped>
-.avatar-btn { position: relative; border: none; background: transparent; padding: 0; cursor: pointer; flex: 0 0 auto; line-height: 0; }
-.cam { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 50%; background: var(--brand-500); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--surface); }
+.photo-row { display: flex; align-items: center; gap: 14px; }
+.photo-prev { object-fit: cover; }
+.photo-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.photo-del { border: none; background: transparent; padding: 2px 4px; font-family: inherit; font-size: 12.5px; font-weight: 700; color: var(--text-faint); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.photo-del:hover { color: var(--warn); }
+.photo-note { font-size: 12px; font-weight: 700; color: var(--text-faint); }
 .me-m { display: flex; flex-direction: column; }
 /* 데스크톱: 제목+내용을 콘텐츠 실폭(560px) 한 컬럼으로 묶어 통째로 가운데 정렬 */
 .me-dt { max-width: 560px; }
