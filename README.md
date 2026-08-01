@@ -91,6 +91,33 @@ curl localhost:8090/actuator/health # {"status":"UP"}
 - 창 폭 **900px** 기준으로 데스크톱/모바일 레이아웃이 자동 전환됩니다.
 
 <details>
+<summary>프로파일(dev / prod) — 시드·로깅 차이와 전환</summary>
+
+`SPRING_PROFILES_ACTIVE` 로 실행 프로파일을 정합니다. compose 기본값은 `dev` 지만, **루트 `.env` 에 `SPRING_PROFILES_ACTIVE` 가 있으면 그 값이 우선**합니다(`.env.example` 은 배포 데모 기준이라 `prod`).
+
+| | `dev` | `prod` |
+|---|---|---|
+| 시드 데이터 | ✅ `teacher@ondo.dev` / `password1234` + 만 4세반·아이 23명 자동 주입 | ❌ 없음 — 회원가입으로 시작 |
+| 로깅 | `show_sql=true` · `com.ondo=DEBUG` | `show_sql=false` · `com.ondo=INFO` |
+| Actuator | 상세 노출 | `health` 만(운영 정보 최소 노출) |
+
+```bash
+# dev 로 기동 (23명 시드 데모) — .env 를 안 건드리고 실행 시점에만 override
+SPRING_PROFILES_ACTIVE=dev docker compose up -d --force-recreate app
+
+# prod 로 기동 (시드 없이 회원가입 흐름)
+SPRING_PROFILES_ACTIVE=prod docker compose up -d --force-recreate app
+```
+
+- 셸 환경변수(`SPRING_PROFILES_ACTIVE=…`)는 `.env` 값보다 우선하므로, 파일 수정 없이 한 번만 다른 프로파일로 띄울 수 있어요.
+- **시드는 멱등**입니다. 반이 이미 있으면 다시 주입하지 않아요. 시드를 새로 넣으려면 DB 볼륨을 비우고 재기동합니다:
+  ```bash
+  docker compose down -v && SPRING_PROFILES_ACTIVE=dev docker compose up -d --build
+  ```
+
+</details>
+
+<details>
 <summary>백엔드 단독 실행 · 환경변수</summary>
 
 ```bash
