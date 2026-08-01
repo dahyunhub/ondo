@@ -59,23 +59,41 @@ public class DevDataInitializer implements CommandLineRunner {
             return;
         }
 
+        // 만 4세반(age_class=4) → 출생연도 = year - (age_class + 1) = 2026 - 5 = 2021년생.
         Long classroomId = classroomRepository.save(
-                Classroom.create(teacher.getId(), "햇살반", 2026, LocalDate.of(2026, 3, 2))).getId();
+                Classroom.create(teacher.getId(), "만 4세반", 2026, 4, LocalDate.of(2026, 3, 2))).getId();
 
         record Seed(String name, LocalDate birth, Gender gender) {}
         List<Seed> kids = List.of(
-                new Seed("강하준", LocalDate.of(2020, 4, 12), Gender.MALE),
-                new Seed("김민준", LocalDate.of(2020, 11, 3), Gender.MALE),
+                new Seed("강하준", LocalDate.of(2021, 3, 15), Gender.MALE),
+                new Seed("김서준", LocalDate.of(2021, 1, 8), Gender.MALE),
+                new Seed("김지호", LocalDate.of(2021, 11, 22), Gender.MALE),
                 new Seed("박서윤", LocalDate.of(2021, 2, 27), Gender.FEMALE),
-                new Seed("이도윤", LocalDate.of(2021, 1, 8), Gender.MALE),
-                new Seed("정시우", LocalDate.of(2020, 9, 30), Gender.FEMALE),
-                new Seed("최아인", LocalDate.of(2020, 5, 21), Gender.FEMALE));
+                new Seed("이도윤", LocalDate.of(2021, 5, 19), Gender.MALE),
+                new Seed("정시우", LocalDate.of(2021, 9, 30), Gender.MALE),
+                new Seed("최아인", LocalDate.of(2021, 4, 21), Gender.FEMALE),
+                new Seed("한예준", LocalDate.of(2021, 7, 3), Gender.MALE),
+                new Seed("오지안", LocalDate.of(2021, 12, 11), Gender.MALE),
+                new Seed("윤하율", LocalDate.of(2021, 6, 14), Gender.FEMALE),
+                new Seed("임서아", LocalDate.of(2021, 8, 25), Gender.FEMALE),
+                new Seed("장은우", LocalDate.of(2021, 1, 30), Gender.MALE),
+                new Seed("조유나", LocalDate.of(2021, 10, 7), Gender.FEMALE),
+                new Seed("신도아", LocalDate.of(2021, 3, 2), Gender.FEMALE),
+                new Seed("유주원", LocalDate.of(2021, 5, 28), Gender.MALE),
+                new Seed("배소율", LocalDate.of(2021, 9, 16), Gender.FEMALE),
+                new Seed("문지우", LocalDate.of(2021, 2, 9), Gender.FEMALE),
+                new Seed("양건우", LocalDate.of(2021, 11, 5), Gender.MALE),
+                new Seed("손채원", LocalDate.of(2021, 4, 13), Gender.FEMALE),
+                new Seed("백시윤", LocalDate.of(2021, 7, 27), Gender.MALE),
+                new Seed("홍서연", LocalDate.of(2021, 6, 1), Gender.FEMALE),
+                new Seed("고은서", LocalDate.of(2021, 10, 19), Gender.FEMALE),
+                new Seed("남주하", LocalDate.of(2021, 8, 8), Gender.FEMALE));
 
         char alias = 'A';
         for (Seed s : kids) {
             childRepository.save(Child.create(classroomId, s.name(), s.birth(), s.gender(), "아이" + alias));
             alias++;
         }
-        log.info("[dev] 시드 반(햇살반) + 아이 {}명 생성", kids.size());
+        log.info("[dev] 시드 반(만 4세반) + 아이 {}명 생성", kids.size());
     }
 }

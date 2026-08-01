@@ -86,7 +86,7 @@ docker compose up -d --build        # app + mysql 기동 (Flyway 스키마 자�
 curl localhost:8090/actuator/health # {"status":"UP"}
 ```
 
-- **바로 둘러보기(dev)**: 시드 계정 `teacher@ondo.dev` / `password1234` 로 로그인하면 햇살반·아이 6명이 준비돼 있어요. (prod 프로파일은 시드 없이 회원가입으로 시작)
+- **바로 둘러보기(dev)**: 시드 계정 `teacher@ondo.dev` / `password1234` 로 로그인하면 만 4세반·아이 23명이 준비돼 있어요. (prod 프로파일은 시드 없이 회원가입으로 시작)
 - 프론트 개발 서버: `cd frontend && npm install && npm run dev` → http://localhost:5273 (`/api` 는 :8090 으로 프록시)
 - 창 폭 **900px** 기준으로 데스크톱/모바일 레이아웃이 자동 전환됩니다.
 
