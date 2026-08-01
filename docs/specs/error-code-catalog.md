@@ -92,6 +92,7 @@ related:
 | `JOURNAL_ALREADY_EXISTS` | 409 | 그 날짜의 보육일지가 이미 있어요. 재분석을 이용해 주세요. | FR-3 유니크 위반(신규 생성 시도) |
 | `DATA_CONFLICT` | 409 | 요청이 현재 상태와 충돌해요. 잠시 후 다시 시도해 주세요. | DB 제약 위반 폴백(예: token_alias 동시 등록 경쟁 → `DataIntegrityViolationException`) |
 | `REPORT_NO_MEMO` | 422 | 해당 기간에 작성된 메모가 없어요. | FR-8 수동평가: 기간 내 메모 0건 |
+| `JOURNAL_NO_MEMO` | 422 | 그 날짜에 작성된 메모가 없어요. | FR-3 일지 분석: 해당 날짜 메모 0건 |
 
 ### 3.5 AI 분석 (AI) — 모든 메시지에 "메모 보존" 포함 (FR-4)
 
@@ -140,6 +141,7 @@ public enum ErrorCode {
     JOURNAL_ALREADY_EXISTS(HttpStatus.CONFLICT, "그 날짜의 보육일지가 이미 있어요. 재분석을 이용해 주세요."),
     DATA_CONFLICT(HttpStatus.CONFLICT, "요청이 현재 상태와 충돌해요. 잠시 후 다시 시도해 주세요."),
     REPORT_NO_MEMO(HttpStatus.UNPROCESSABLE_ENTITY, "해당 기간에 작성된 메모가 없어요."),
+    JOURNAL_NO_MEMO(HttpStatus.UNPROCESSABLE_ENTITY, "그 날짜에 작성된 메모가 없어요."),
 
     // AI (메모 보존 고지 포함)
     AI_ANALYSIS_FAILED(HttpStatus.BAD_GATEWAY, "분석에 실패했어요. 작성하신 메모는 그대로 저장돼 있어요. 잠시 후 다시 시도해 주세요."),
@@ -175,7 +177,7 @@ public enum ErrorCode {
 | `GET /children/{id}/timeline` | `INVALID_CURRICULUM_AREA`, `CHILD_NOT_FOUND` |
 | `PATCH /memos/{id}/curriculum-area` | `VALIDATION_FAILED`, `INVALID_CURRICULUM_AREA`, `MEMO_NOT_FOUND` |
 | `DELETE /memos/{id}` | `MEMO_NOT_FOUND` |
-| `POST /journals/analyze` | `VALIDATION_FAILED`, `CLASSROOM_NOT_FOUND`, `JOURNAL_ALREADY_EXISTS`, `ANALYSIS_IN_PROGRESS`, `AI_*` |
+| `POST /journals/analyze` | `VALIDATION_FAILED`, `CLASSROOM_NOT_FOUND`, `JOURNAL_NO_MEMO`, `JOURNAL_ALREADY_EXISTS`, `ANALYSIS_IN_PROGRESS`, `AI_*` |
 | `GET /journals`, `GET /journals/{id}` | `JOURNAL_NOT_FOUND` |
 | `PUT /journals/{id}` | `VALIDATION_FAILED`, `JOURNAL_NOT_FOUND` |
 | `POST /journals/{id}/analyze` | `JOURNAL_NOT_FOUND`, `ANALYSIS_IN_PROGRESS`, `AI_*` |

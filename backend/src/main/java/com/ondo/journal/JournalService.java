@@ -122,7 +122,7 @@ public class JournalService {
 
     /**
      * analyze(생성)·reanalyze(덮어쓰기) 공통 AI 파이프라인:
-     * 묶음 로드(0건 → VALIDATION_FAILED) → 비식별화 → 프롬프트 → AiClient(TX 밖) → 복원·검증·1회 재요청 →
+     * 묶음 로드(0건 → JOURNAL_NO_MEMO) → 비식별화 → 프롬프트 → AiClient(TX 밖) → 복원·검증·1회 재요청 →
      * (평탄화 content, contentJson, memoIds, index→영역 매핑).
      */
     private AnalysisOutcome runAnalysisPipeline(Long classroomId, LocalDate date) {
@@ -132,7 +132,8 @@ public class JournalService {
         List<Memo> memos = memoRepository.findClassroomBundle(
                 classroomId, AppTime.startOfDayUtc(date), AppTime.startOfNextDayUtc(date));
         if (memos.isEmpty()) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "그 날짜에 작성된 메모가 없어요.");
+            // 전용 코드(REPORT_NO_MEMO 와 짝) — 프론트가 범용 에러가 아닌 "메모 없음" 빈 상태로 안내한다.
+            throw new BusinessException(ErrorCode.JOURNAL_NO_MEMO, "그 날짜에 작성된 메모가 없어요.");
         }
 
         RestorationContext ctx = deidentifier.newContext(rosterNames(classroomId));

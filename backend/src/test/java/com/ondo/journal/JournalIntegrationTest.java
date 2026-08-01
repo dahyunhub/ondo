@@ -147,13 +147,13 @@ class JournalIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    void 그_날짜_메모가_없으면_400_VALIDATION_FAILED() throws Exception {
+    void 그_날짜_메모가_없으면_422_JOURNAL_NO_MEMO() throws Exception {
         // today 엔 메모가 있으므로 메모가 없는 다른 날짜로 요청
         mockMvc.perform(post("/api/v1/journals/analyze").header("Authorization", "Bearer " + tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"classroomId\":" + classroomAId + ",\"date\":\"2020-01-01\"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("JOURNAL_NO_MEMO"));
     }
 
     @Test

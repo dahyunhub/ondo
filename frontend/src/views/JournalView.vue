@@ -137,9 +137,13 @@ async function handleAnalyzeError(e) {
     if (journal.value) { view.value = 'draft'; return }
   }
   if (code === 'ANALYSIS_IN_PROGRESS') { view.value = 'busy'; return }
+  // 오늘 메모가 하나도 없는 정상 상황 — 범용 에러가 아니라 전용 빈 상태로 안내.
+  if (code === 'JOURNAL_NO_MEMO') { view.value = 'no-memo'; return }
   errorMsg.value = e instanceof ApiError ? e.message : '분석 중 문제가 발생했어요.'
   view.value = 'error'
 }
+
+function goToMemo() { router.push('/memo') }
 
 function askReanalyze() { showOverwrite.value = true }
 
@@ -279,6 +283,17 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
       <div class="jr-h1" style="text-align:center">분석이 이미 진행 중이에요</div>
       <div class="state-sub">지금 만들고 있는 일지가 끝나면<br>이어서 진행할 수 있어요.</div>
       <button class="jr-btn jr-btn--secondary" style="margin-top:24px" @click="backToHub">돌아가기</button>
+    </div>
+
+    <!-- ===== 오늘 메모 없음(정상 빈 상태) ===== -->
+    <div v-else-if="view === 'no-memo'" class="state-center">
+      <div class="state-circle brand"><AppIcon name="sparkle" :size="42" style="color:var(--brand-700)" /></div>
+      <div class="jr-h1" style="text-align:center">아직 오늘 메모가 없어요</div>
+      <div class="state-sub">일지는 오늘 남긴 메모를 모아 만들어요.<br>메모를 먼저 한 개라도 남겨 주세요.</div>
+      <div class="err-actions">
+        <button class="jr-btn jr-btn--primary" style="flex:1" @click="goToMemo"><AppIcon name="pencil" :size="20" /> 메모 쓰러 가기</button>
+        <button class="jr-btn jr-btn--secondary" style="flex:1" @click="backToHub">돌아가기</button>
+      </div>
     </div>
 
     <!-- ===== 에러 ===== -->

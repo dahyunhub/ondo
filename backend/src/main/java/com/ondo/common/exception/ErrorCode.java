@@ -37,6 +37,7 @@ public enum ErrorCode {
     JOURNAL_ALREADY_EXISTS(HttpStatus.CONFLICT, "그 날짜의 일지가 이미 있어요. 재분석을 이용해 주세요."),
     DATA_CONFLICT(HttpStatus.CONFLICT, "요청이 현재 상태와 충돌해요. 잠시 후 다시 시도해 주세요."),
     REPORT_NO_MEMO(HttpStatus.UNPROCESSABLE_ENTITY, "해당 기간에 작성된 메모가 없어요."),
+    JOURNAL_NO_MEMO(HttpStatus.UNPROCESSABLE_ENTITY, "그 날짜에 작성된 메모가 없어요."),
 
     // AI (메모 보존 고지 포함 — FR-4)
     AI_ANALYSIS_FAILED(HttpStatus.BAD_GATEWAY, "분석에 실패했어요. 작성하신 메모는 그대로 저장돼 있어요. 잠시 후 다시 시도해 주세요."),
