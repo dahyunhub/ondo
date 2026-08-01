@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import { api, ApiError } from '../lib/api'
 import AppIcon from './AppIcon.vue'
 import Avatar from './Avatar.vue'
@@ -29,11 +29,22 @@ const classroomYear = session.classroom?.year ?? null
 const defaultBirthYear = birthYearFor(classroomYear, session.classroom?.ageClass ?? null)
 const error = ref('')
 
-// 프로필 사진(크롭) — 신규 크롭 blob 은 저장 시 업로드.
+// 프로필 사진(크롭) — 신규 크롭 blob 은 저장 시 업로드, 삭제도 저장 시 반영한다.
+// 즉시 반영하지 않는 이유: 이름·생년월일과 함께 '저장하기'로 확정되는 폼이라,
+// 사진만 먼저 사라지면 취소해도 되돌릴 수 없어 폼의 약속이 깨진다.
 const fileInput = ref(null)
 const cropFile = ref(null)
 const pendingBlob = ref(null)
 const pendingPreview = ref('')
+const photoRemoved = ref(false)
+
+/** 저장된 사진이 있나(수정 모드에서만 의미 있음). */
+const hasSavedPhoto = computed(() => props.mode === 'edit' && !!props.child?.photoUpdatedAt)
+/** 아바타에 저장된 사진을 띄울지 — 삭제 예약 중이면 이니셜로 미리 보여준다. */
+const showSavedPhoto = computed(() => hasSavedPhoto.value && !photoRemoved.value)
+/** 지울 사진이 있나(새로 고른 것이든 이미 저장된 것이든). */
+const canRemovePhoto = computed(() => !!pendingPreview.value || showSavedPhoto.value)
+
 function pickFile(e) {
   const f = e.target.files?.[0]
   e.target.value = '' // 같은 파일 재선택 허용
@@ -43,7 +54,19 @@ function onCropped(blob) {
   pendingBlob.value = blob
   if (pendingPreview.value) URL.revokeObjectURL(pendingPreview.value)
   pendingPreview.value = URL.createObjectURL(blob)
+  photoRemoved.value = false // 지웠다가 다시 고르면 삭제 예약 취소
   cropFile.value = null
+}
+
+/** 새로 고른 사진이면 그것만 취소하고, 저장된 사진이면 삭제를 예약한다. */
+function removePhoto() {
+  if (pendingPreview.value) {
+    URL.revokeObjectURL(pendingPreview.value)
+    pendingPreview.value = ''
+    pendingBlob.value = null
+    return
+  }
+  photoRemoved.value = true
 }
 
 async function save() {
@@ -63,6 +86,8 @@ async function save() {
     }
     if (pendingBlob.value) {
       await api.putBinary(`/children/${childId}/photo`, pendingBlob.value, 'image/jpeg')
+    } else if (photoRemoved.value && props.mode === 'edit') {
+      await api.del(`/children/${childId}/photo`)
     }
     emit('saved')
   } catch (e) {
@@ -117,11 +142,20 @@ async function confirmDelete() {
           <div class="photo-row">
             <img v-if="pendingPreview" class="jr-avatar jr-avatar--lg photo-prev" :src="pendingPreview" alt="미리보기" />
             <Avatar v-else :name="form.name"
-                    :photo-url="mode === 'edit' && child?.id ? `/children/${child.id}/photo` : ''"
-                    :photo-key="mode === 'edit' ? (child?.photoUpdatedAt || '') : ''" size="lg" />
-            <button type="button" class="jr-btn jr-btn--secondary jr-btn--sm" @click="fileInput?.click()">
-              <AppIcon name="plus" :size="16" :stroke="2.6" /> {{ pendingPreview ? '사진 변경' : '사진 추가' }}
-            </button>
+                    :photo-url="showSavedPhoto && child?.id ? `/children/${child.id}/photo` : ''"
+                    :photo-key="showSavedPhoto ? (child?.photoUpdatedAt || '') : ''" size="lg" />
+            <div class="photo-actions">
+              <button type="button" class="jr-btn jr-btn--secondary jr-btn--sm" @click="fileInput?.click()">
+                <AppIcon name="plus" :size="16" :stroke="2.6" />
+                {{ pendingPreview || showSavedPhoto ? '사진 변경' : '사진 추가' }}
+              </button>
+              <!-- 사진 삭제는 되돌리기 쉬운 동작(다시 올리면 됨)이라 확인 단계를 두지 않는다.
+                   실제 반영은 '저장하기' 시점 — 취소하면 사진도 그대로 남는다. -->
+              <button v-if="canRemovePhoto" type="button" class="photo-del" @click="removePhoto">
+                사진 삭제
+              </button>
+              <span v-else-if="photoRemoved" class="photo-note">저장하면 사진이 지워져요</span>
+            </div>
             <input ref="fileInput" type="file" accept="image/*" class="file-hidden" @change="pickFile" />
           </div>
           <div>
@@ -168,6 +202,15 @@ async function confirmDelete() {
 .sheet-top { display: flex; align-items: center; margin-bottom: 16px; }
 .photo-row { display: flex; align-items: center; gap: 14px; }
 .photo-prev { object-fit: cover; }
+.photo-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+/* 사진 삭제는 파괴적 동작이 아니라(다시 올리면 됨) 조용한 보조 액션으로 둔다. */
+.photo-del {
+  border: none; background: transparent; padding: 2px 4px; font-family: inherit;
+  font-size: 12.5px; font-weight: 700; color: var(--text-faint); cursor: pointer;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.photo-del:hover { color: var(--warn); }
+.photo-note { font-size: 12px; font-weight: 700; color: var(--text-faint); }
 .file-hidden { display: none; }
 .close { margin-left: auto; border: none; background: var(--surface-soft); border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: var(--text-sub); cursor: pointer; }
 .fields { display: flex; flex-direction: column; gap: 14px; }
