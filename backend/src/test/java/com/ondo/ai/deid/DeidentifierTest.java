@@ -100,6 +100,40 @@ class DeidentifierTest {
     }
 
     @Test
+    void 성을_뗀_이름_호칭도_같은_토큰으로_치환된다() {
+        // 교사·시드는 "고은서"가 아니라 "은서"로 적는 경우가 많다 — 축약형도 마스킹되어야 유출이 없다.
+        RestorationContext ctx = deidentifier.newContext(List.of("고은서", "김서준"));
+        String text = "은서가 서준이와 블록을 하나씩 번갈아 쌓음";
+
+        String deid = deidentifier.deidentify(text, ctx);
+
+        assertThat(deid).doesNotContain("은서", "서준");
+        assertThat(deid).contains("[[CHILD_1]]", "[[CHILD_2]]");
+        // 복원은 언제나 풀네임으로 — 축약형이 실명(풀네임)으로 안전하게 되돌아온다.
+        assertThat(ctx.restore(deid)).contains("고은서", "김서준").doesNotContain("[[CHILD_");
+    }
+
+    @Test
+    void 동명이인의_축약형은_모호하므로_치환하지_않는다() {
+        // "서준"이 김서준·이서준 둘 다를 가리킬 수 있으면 어느 실명인지 알 수 없다 → 별칭 보류(엉뚱한 복원 방지).
+        RestorationContext ctx = deidentifier.newContext(List.of("김서준", "이서준"));
+
+        String deid = deidentifier.deidentify("서준이가 놀아요", ctx);
+
+        assertThat(deid).isEqualTo("서준이가 놀아요"); // 축약형 별칭 없음(풀네임만 매핑)
+    }
+
+    @Test
+    void 축약형이_다른아이_풀네임과_겹치면_그_풀네임_매핑을_보존한다() {
+        // "은서"(2글자 실명)와 "고은서"가 공존 — "고은서"의 축약형 별칭이 "은서"의 자기 매핑을 침해하면 안 된다.
+        RestorationContext ctx = deidentifier.newContext(List.of("은서", "고은서"));
+
+        String deid = deidentifier.deidentify("고은서와 은서", ctx);
+
+        assertThat(ctx.restore(deid)).isEqualTo("고은서와 은서"); // 각자 자기 실명으로 복원
+    }
+
+    @Test
     void null_텍스트는_그대로_통과한다() {
         RestorationContext ctx = deidentifier.newContext(List.of("김민준"));
 

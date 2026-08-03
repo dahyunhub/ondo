@@ -62,6 +62,7 @@ class ReportIntegrationTest extends IntegrationTestSupport {
     @Autowired private StubAiClient stubAiClient;
 
     private String tokenA;
+    private Long teacherAId;
     private Long classroomAId;
     private Long childA1Id;
     private Long childBId; // 교사 B 소유
@@ -71,6 +72,7 @@ class ReportIntegrationTest extends IntegrationTestSupport {
         stubAiClient.reset();
         Teacher a = teacherRepository.save(Teacher.create("ra+" + System.nanoTime() + "@ondo.dev", "h", "교사A"));
         Teacher b = teacherRepository.save(Teacher.create("rb+" + System.nanoTime() + "@ondo.dev", "h", "교사B"));
+        teacherAId = a.getId();
         classroomAId = classroomRepository.save(Classroom.create(a.getId(), "햇살반", 2026, LocalDate.of(2026, 3, 2))).getId();
         Long classroomBId = classroomRepository.save(Classroom.create(b.getId(), "달님반", 2026, LocalDate.of(2026, 3, 2))).getId();
         childA1Id = childRepository.save(Child.create(classroomAId, "김민준", LocalDate.of(2021, 1, 1), Gender.MALE, "아이A")).getId();
@@ -108,6 +110,21 @@ class ReportIntegrationTest extends IntegrationTestSupport {
         String userPrompt = stubAiClient.lastRequest.userPrompt();
         assertThat(userPrompt).doesNotContain("김민준");
         assertThat(userPrompt).contains("[[CHILD_");
+    }
+
+    @Test
+    void 대상아동_토큰을_명시하고_다른아이_축약형까지_비식별화한다() throws Exception {
+        // 회귀 방지: 대상 아이 메모가 다른 아이를 축약형("서윤")으로 언급해도, 실명·축약형이 모두 마스킹되고
+        // 프롬프트 첫머리에 '대상 아동' 토큰이 고정된다 — 엉뚱한 아이 이름이 요약 주어로 새는 버그를 막는다.
+        childRepository.save(Child.create(classroomAId, "박서윤", LocalDate.of(2021, 3, 1), Gender.FEMALE, "아이C"));
+        memoRepository.save(Memo.create(childA1Id, teacherAId, "서윤이와 블록을 번갈아 쌓음", null, "차례 지키기", null));
+        stubAiClient.enqueue(() -> HAPPY_JSON);
+
+        createReport(tokenA, childA1Id).andExpect(status().isCreated());
+
+        String userPrompt = stubAiClient.lastRequest.userPrompt();
+        assertThat(userPrompt).doesNotContain("김민준", "박서윤", "서윤"); // 대상·타아동 실명·축약형 모두 마스킹
+        assertThat(userPrompt).contains("대상 아동은 [[CHILD_");        // 대상 토큰 고정
     }
 
     @Test

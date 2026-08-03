@@ -43,13 +43,20 @@ public class PromptTemplateLoader {
     /**
      * 한 아이의 기간 관찰 메모 묶음을 평가용 user 프롬프트로 렌더. 항목 제시 방식은 일지와 동일하나
      * 도입부가 '기간 개인 관찰 평가'용이다(평가는 메모 영역 분류 없음). 빈 리스트는 프로그래밍 오류로 거절.
+     * subjectToken 은 이 평가의 '대상 아동' 가명 토큰([[CHILD_n]]) — 모델이 주어를 추정하다 엉뚱한 아이 토큰을
+     * 찍는 것을 막는다(오지칭 방지). 메모에 다른 아이가 등장해도 평가 주어는 이 토큰으로 고정된다.
      */
-    public String renderReportMemos(List<MemoPromptInput> memos) {
+    public String renderReportMemos(String subjectToken, List<MemoPromptInput> memos) {
         if (memos == null || memos.isEmpty()) {
             throw new IllegalArgumentException("렌더할 메모가 없습니다(평가 경로 전제: 비어있지 않은 메모 묶음).");
         }
-        StringBuilder sb = new StringBuilder(
-                "아래는 한 아이에 대해 일정 기간 동안 기록한 관찰 메모입니다. 이를 바탕으로 개인 관찰 평가를 작성해 주세요.\n");
+        StringBuilder sb = new StringBuilder();
+        if (subjectToken != null && !subjectToken.isBlank()) {
+            sb.append("이 개인 관찰 평가의 대상 아동은 ").append(subjectToken.strip())
+              .append(" 입니다. 평가 전체에서 대상 아동을 가리킬 때는 반드시 이 토큰만 사용하고, ")
+              .append("다른 아이 토큰이나 새 토큰으로 바꾸지 마세요. 메모에 등장하는 다른 아이는 각자의 토큰으로 두세요.\n\n");
+        }
+        sb.append("아래는 한 아이에 대해 일정 기간 동안 기록한 관찰 메모입니다. 이를 바탕으로 개인 관찰 평가를 작성해 주세요.\n");
         for (MemoPromptInput m : memos) {
             sb.append('\n').append('[').append(m.index()).append(']');
             appendField(sb, " 놀이: ", m.playActivity());

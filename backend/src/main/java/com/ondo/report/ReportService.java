@@ -103,7 +103,7 @@ public class ReportService {
         if (memos.isEmpty()) {
             throw new BusinessException(ErrorCode.REPORT_NO_MEMO);
         }
-        ReportAnalysisResult result = runPipelineForMemos(child.getClassroomId(), memos);
+        ReportAnalysisResult result = runPipelineForMemos(child, memos);
         String json = contentSerializer.toJson(result);
         PersistResult persisted = reportPersistService.saveManual(childId, periodStart, periodEnd, json);
 
@@ -128,15 +128,18 @@ public class ReportService {
             return MonthlyOutcome.SKIPPED_NO_MEMO; // 그달 메모 없는 아이 skip(throw 아님)
         }
 
-        ReportAnalysisResult result = runPipelineForMemos(child.getClassroomId(), memos);
+        ReportAnalysisResult result = runPipelineForMemos(child, memos);
         reportPersistService.saveMonthly(childId, periodStart, periodEnd, reportMonth,
                 contentSerializer.toJson(result));
         return MonthlyOutcome.CREATED;
     }
 
     /** 비식별화 → 프롬프트 → AiClient(TX 밖) → 복원·검증·1회 재요청. 호출 전 비어있지 않은 메모 묶음 전제(manual은 throw, monthly는 skip). */
-    private ReportAnalysisResult runPipelineForMemos(Long classroomId, List<Memo> memos) {
-        RestorationContext ctx = deidentifier.newContext(rosterNames(classroomId));
+    private ReportAnalysisResult runPipelineForMemos(Child subject, List<Memo> memos) {
+        RestorationContext ctx = deidentifier.newContext(rosterNames(subject.getClassroomId()));
+        // 대상 아동 토큰 — 반 명단으로 만든 컨텍스트에서 대상 실명이 치환된 결과가 곧 그 아이의 토큰이다.
+        // 이 토큰을 프롬프트에 명시해, 모델이 주어를 추정하다 엉뚱한 아이(예: 명단 첫 아이)로 오지칭하는 것을 막는다.
+        String subjectToken = deidentifier.deidentify(subject.getName(), ctx);
         List<MemoPromptInput> inputs = new ArrayList<>();
         int index = 1;
         for (Memo memo : memos) {
@@ -149,7 +152,7 @@ public class ReportService {
 
         AiRequest request = new AiRequest(
                 promptTemplateLoader.reportSystemPrompt(),
-                promptTemplateLoader.renderReportMemos(inputs),
+                promptTemplateLoader.renderReportMemos(subjectToken, inputs),
                 ReportAnalysisSchema.schema(),
                 REPORT_MAX_TOKENS);
         return analyzeWithRetry(request, ctx);

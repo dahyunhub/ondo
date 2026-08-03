@@ -45,4 +45,28 @@ class PromptTemplateLoaderTest {
         assertThatThrownBy(() -> loader.renderMemos(List.of()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void 평가_프롬프트는_대상아동_토큰을_첫머리에_명시한다() {
+        String user = loader.renderReportMemos("[[CHILD_2]]", List.of(
+                new MemoPromptInput(1, null, null, "[[CHILD_2]]가 [[CHILD_3]]와 블록놀이", null)));
+
+        assertThat(user).contains("대상 아동은 [[CHILD_2]]");
+        assertThat(user).contains("[1]").contains("상호작용: [[CHILD_2]]가 [[CHILD_3]]와 블록놀이");
+    }
+
+    @Test
+    void 평가_프롬프트는_대상토큰이_없어도_렌더된다() {
+        String user = loader.renderReportMemos(null, List.of(
+                new MemoPromptInput(1, "본문", null, null, null)));
+
+        assertThat(user).doesNotContain("대상 아동은");
+        assertThat(user).contains("메모: 본문");
+    }
+
+    @Test
+    void 평가_빈_메모_묶음은_계약위반으로_거절한다() {
+        assertThatThrownBy(() -> loader.renderReportMemos("[[CHILD_1]]", List.of()))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }
