@@ -32,9 +32,16 @@ function fmtDateLabel(iso) {
 
 // 지금까지 만든 일지 전체 목록(최신순).
 const journals = ref([])
+// 페이지네이션 — 6개 초과부터 페이지를 나눠 목록이 아래로 무한정 늘어나지 않게 한다.
+const PAGE_SIZE = 6
+const page = ref(1)
+const totalPages = computed(() => Math.max(1, Math.ceil(journals.value.length / PAGE_SIZE)))
+const pagedJournals = computed(() => journals.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE))
+function goPage(p) { page.value = Math.min(Math.max(1, p), totalPages.value) }
 async function loadJournals() {
   try {
     journals.value = await api.get(`/journals/list?classroomId=${classroomId}`)
+    if (page.value > totalPages.value) page.value = totalPages.value // 목록이 줄면 페이지 보정
   } catch (e) {
     // 비치명적: 목록을 못 불러오면 빈 상태로 둔다.
   }
@@ -250,7 +257,7 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
 
         <div class="recent-h"><span class="jr-h2" :style="isDesktop ? '' : 'font-size:18px'">지금까지 만든 일지</span></div>
         <div v-if="journals.length" class="journal-list">
-          <button v-for="j in journals" :key="j.id" class="recent-card" @click="openJournal(j)">
+          <button v-for="j in pagedJournals" :key="j.id" class="recent-card" @click="openJournal(j)">
             <span class="rc-ic"><AppIcon name="journal" :size="22" /></span>
             <div class="rc-body">
               <div class="rc-t">{{ fmtDateLabel(j.journalDate) }}</div>
@@ -259,6 +266,11 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
             <span class="rc-status" :class="j.status === 'CONFIRMED' ? 'on' : ''">{{ j.status === 'CONFIRMED' ? '확정' : 'AI 초안' }}</span>
             <AppIcon name="chevR" :size="20" />
           </button>
+          <nav v-if="totalPages > 1" class="pager">
+            <button class="pg-arrow" :disabled="page === 1" aria-label="이전" @click="goPage(page - 1)"><AppIcon name="chevL" :size="18" /></button>
+            <button v-for="p in totalPages" :key="p" class="pg-num" :class="{ on: p === page }" @click="goPage(p)">{{ p }}</button>
+            <button class="pg-arrow" :disabled="page === totalPages" aria-label="다음" @click="goPage(page + 1)"><AppIcon name="chevR" :size="18" /></button>
+          </nav>
         </div>
         <div v-else class="recent-empty">
           <AppIcon name="journal" :size="26" style="color:var(--text-faint)" />
@@ -353,7 +365,7 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
         <template v-else>
           <button class="jr-btn jr-btn--ghost" @click="startEdit"><AppIcon name="pencil" :size="19" /> 수정</button>
           <button class="jr-btn jr-btn--secondary" @click="askReanalyze"><AppIcon name="swap" :size="19" /> 다시</button>
-          <button class="jr-btn jr-btn--primary" style="flex:1" :disabled="saving" @click="confirmJournal">
+          <button class="jr-btn jr-btn--primary confirm-btn" :disabled="saving" @click="confirmJournal">
             <AppIcon name="check" :size="21" :stroke="2.6" /> {{ isConfirmed ? '다시 확정' : '확정' }}
           </button>
         </template>
@@ -398,17 +410,28 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
 .recent-h { margin-bottom: 14px; margin-top: 4px; }
 .recent-empty {
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px;
-  padding: 32px 20px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-sm); max-width: 760px;
+  padding: 32px 20px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-sm); max-width: 520px;
 }
 .re-t { font-size: 15px; font-weight: 800; color: var(--text-sub); }
 .re-d { font-size: 13px; color: var(--text-faint); line-height: 1.5; }
 
 .recent-card {
-  display: flex; align-items: center; gap: 13px; width: 100%; max-width: 760px; padding: 15px 18px; cursor: pointer;
+  display: flex; align-items: center; gap: 13px; width: 100%; max-width: 520px; padding: 15px 18px; cursor: pointer;
   border-radius: var(--r-card); background: var(--surface); border: 1.5px solid var(--hair); box-shadow: var(--shadow-sm); font-family: inherit; text-align: left;
 }
 .rc-ic { width: 42px; height: 42px; border-radius: 12px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: var(--brand-100); color: var(--brand-700); }
-.journal-list { display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
+.journal-list { display: flex; flex-direction: column; gap: 10px; max-width: 520px; }
+
+/* 페이지네이션 — 6개 초과 시 노출 */
+.pager { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px; }
+.pg-arrow, .pg-num {
+  min-width: 34px; height: 34px; padding: 0 6px; border-radius: 10px; border: 1.5px solid var(--hair);
+  background: var(--surface); color: var(--text-sub); font-family: inherit; font-size: 14px; font-weight: 700;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: border-color .12s, background .12s, color .12s;
+}
+.pg-arrow:hover:not(:disabled), .pg-num:hover { border-color: var(--brand-500); }
+.pg-arrow:disabled { opacity: .4; cursor: not-allowed; }
+.pg-num.on { background: var(--brand-500); border-color: var(--brand-500); color: var(--text); }
 .journal-list .recent-card { margin: 0; }
 .rc-body { flex: 1; min-width: 0; }
 .rc-t { font-size: 15px; font-weight: 800; }
@@ -449,6 +472,9 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
 .ab-edit:focus { outline: none; border-color: var(--brand-500); background: var(--surface); }
 
 .actions { display: flex; gap: 9px; padding: 16px 0 26px; }
+/* 모바일: 확정을 내용 폭으로 두고 가운데 정렬 — 화면 폭을 꽉 채워 과하게 커 보이지 않게 */
+.actions:not(.dt) { justify-content: center; }
+.actions:not(.dt) .confirm-btn { padding-left: 26px; padding-right: 26px; }
 .actions.dt { max-width: 760px; justify-content: flex-end; }
 .actions.dt .jr-btn--primary { flex: 0 0 auto !important; padding-left: 30px; padding-right: 30px; }
 

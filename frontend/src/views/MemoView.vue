@@ -31,7 +31,21 @@ const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
 const toast = ref('')
-let navTimer = null
+let toastTimer = null
+
+function showToast(msg) {
+  toast.value = msg
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => (toast.value = ''), 2000)
+}
+
+function reset() {
+  selectedId.value = null
+  form.playActivity = ''
+  form.interaction = ''
+  form.attitude = ''
+  openField.value = null
+}
 
 const today = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())
 const selectedChild = computed(() => children.value.find((c) => c.id === selectedId.value) || null)
@@ -54,6 +68,7 @@ async function save() {
   if (!canSave.value || saving.value) return
   error.value = ''
   saving.value = true
+  const name = shortName(selectedChild.value?.name)
   try {
     await api.post('/memos', {
       childId: selectedId.value,
@@ -61,17 +76,18 @@ async function save() {
       interaction: form.interaction || null,
       attitude: form.attitude || null,
     })
-    toast.value = `${shortName(selectedChild.value?.name)} 페이지에 저장됐어요`
-    const id = selectedId.value
-    navTimer = setTimeout(() => router.push({ name: 'timeline', params: { childId: id } }), 1100)
+    // 한 번에 여러 아이를 기록하는 흐름 — 페이지 이동 없이 초기화하고 다음 아이로.
+    showToast(`${name} 메모를 저장했어요`)
+    reset()
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : '저장 중 문제가 발생했어요.'
+  } finally {
     saving.value = false
   }
 }
 
 onMounted(load)
-onBeforeUnmount(() => { if (navTimer) clearTimeout(navTimer) })
+onBeforeUnmount(() => clearTimeout(toastTimer))
 </script>
 
 <template>
@@ -134,7 +150,7 @@ onBeforeUnmount(() => { if (navTimer) clearTimeout(navTimer) })
               <AppIcon name="check" :size="22" :stroke="2.6" /> 저장하기
             </button>
             <p v-if="!canSave" class="save-hint"><AppIcon name="help" :size="15" /> 아이를 고르고 내용을 한 줄만 적어주세요</p>
-            <p v-else class="save-note">저장하면 <b>{{ shortName(selectedChild?.name) }} 페이지</b>에<br />바로 기록돼요 · 영역은 밤에 자동 분류</p>
+            <p v-else class="save-note">저장하면 <b>{{ shortName(selectedChild?.name) }} 페이지</b>에 기록되고<br />이 화면에서 다음 아이로 이어가요</p>
           </div>
         </div>
       </div>

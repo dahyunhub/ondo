@@ -1,5 +1,5 @@
 <script setup>
-// 마이 — 프로필(이름·비밀번호 수정) · 반 전환 · 설정 · 도움말(FAQ). (알림/내보내기는 추후)
+// 마이 — 프로필(이름·비밀번호 수정) · 반 전환 · 도움말(FAQ) · 로그아웃.
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, ApiError } from '../lib/api'
@@ -43,8 +43,6 @@ function pickClass(c) {
   // 현재(올해) 반으로 전환하면 홈으로, 지난 반이면 그대로 보기
   if (isNow(c)) router.replace({ name: 'home' })
 }
-function notReady(label) { toast.value = `${label}은 곧 제공돼요`; setTimeout(() => (toast.value = ''), 1600) }
-
 function showToast(msg) { toast.value = msg; setTimeout(() => (toast.value = ''), 1600) }
 
 // 프로필 사진 — '프로필 수정' 모달 안에서 편집한다(카드의 즉석 + 버튼 제거).
@@ -197,16 +195,6 @@ onMounted(() => {})
         <button class="row" @click="openPw">
           <AppIcon name="lock" :size="21" class="r-ic" />
           <div class="r-tx"><div class="r-label">비밀번호 변경</div></div>
-          <AppIcon name="chevR" :size="18" class="r-chev" />
-        </button>
-        <button class="row" @click="notReady('알림 설정')">
-          <AppIcon name="bell" :size="21" class="r-ic" />
-          <div class="r-tx"><div class="r-label">알림 설정</div></div>
-          <AppIcon name="chevR" :size="18" class="r-chev" />
-        </button>
-        <button class="row" @click="notReady('기록 내보내기')">
-          <AppIcon name="download" :size="21" class="r-ic" />
-          <div class="r-tx"><div class="r-label">기록 내보내기</div></div>
           <AppIcon name="chevR" :size="18" class="r-chev" />
         </button>
         <button class="row" @click="router.push({ name: 'help' })">

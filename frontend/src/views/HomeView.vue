@@ -1,11 +1,10 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../lib/api'
 import { auth } from '../stores/auth'
 import { session } from '../stores/session'
 import { useViewport } from '../lib/useViewport'
-import Avatar from '../components/Avatar.vue'
 import AppIcon from '../components/AppIcon.vue'
 import MeetSoonCard from '../components/MeetSoonCard.vue'
 
@@ -19,7 +18,9 @@ const today = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', 
 function go(name) { router.push({ name }) }
 
 // 지금까지 만든 일지(최신순) — 클릭 시 일지 페이지에서 해당 일지 열기.
+// 홈은 미리보기라 최근 5개만 — 전체는 '일지' 페이지에서 페이지네이션으로 본다.
 const journals = ref([])
+const recentJournals = computed(() => journals.value.slice(0, 5))
 function fmtDate(iso) { return new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric' }).format(new Date(iso)) }
 function openJournal(id) { router.push({ name: 'journal', query: { journalId: id } }) }
 // 이번 주 만나볼 아이 — 최근 기록이 옅은 아이.
@@ -84,7 +85,7 @@ onMounted(async () => {
 
         <div class="sec-title" style="margin-top:28px"><span class="jr-h2">지금까지 만든 일지</span></div>
         <div v-if="journals.length" class="jlist">
-          <button v-for="j in journals" :key="j.id" class="jrow" @click="openJournal(j.id)">
+          <button v-for="j in recentJournals" :key="j.id" class="jrow" @click="openJournal(j.id)">
             <span class="jrow-ic"><AppIcon name="journal" :size="20" /></span>
             <span class="jrow-body">
               <span class="jrow-t">{{ fmtDate(j.journalDate) }}</span>
@@ -93,6 +94,7 @@ onMounted(async () => {
             <span class="jrow-st" :class="j.status === 'CONFIRMED' ? 'on' : ''">{{ j.status === 'CONFIRMED' ? '확정' : '초안' }}</span>
             <AppIcon name="chevR" :size="18" />
           </button>
+          <button v-if="journals.length > 5" class="jmore" @click="go('journal')">전체 일지 보기 <AppIcon name="chevR" :size="15" /></button>
         </div>
         <div v-else class="jempty">아직 만든 일지가 없어요. 오늘 메모로 첫 일지를 만들어 보세요.</div>
       </div>
@@ -126,8 +128,6 @@ onMounted(async () => {
         {{ session.classroom?.name }} <AppIcon name="chevD" :size="16" :stroke="2.4" />
       </button>
       <span class="m-date">{{ today }}</span>
-      <Avatar :name="teacherName" size="sm" style="margin-left:auto"
-              photo-url="/teachers/me/photo" :photo-key="auth.teacher?.photoUpdatedAt || ''" />
     </header>
 
     <div class="screen m-body">
@@ -156,7 +156,7 @@ onMounted(async () => {
 
       <div class="soon-label">지금까지 만든 일지</div>
       <div v-if="journals.length" class="jlist">
-        <button v-for="j in journals" :key="j.id" class="jrow" @click="openJournal(j.id)">
+        <button v-for="j in recentJournals" :key="j.id" class="jrow" @click="openJournal(j.id)">
           <span class="jrow-ic"><AppIcon name="journal" :size="20" /></span>
           <span class="jrow-body">
             <span class="jrow-t">{{ fmtDate(j.journalDate) }}</span>
@@ -165,6 +165,7 @@ onMounted(async () => {
           <span class="jrow-st" :class="j.status === 'CONFIRMED' ? 'on' : ''">{{ j.status === 'CONFIRMED' ? '확정' : '초안' }}</span>
           <AppIcon name="chevR" :size="18" />
         </button>
+        <button v-if="journals.length > 5" class="jmore" @click="go('journal')">전체 일지 보기 <AppIcon name="chevR" :size="15" /></button>
       </div>
       <div v-else class="jempty">아직 만든 일지가 없어요.<br>오늘 메모로 첫 일지를 만들어 보세요.</div>
 
@@ -223,6 +224,11 @@ onMounted(async () => {
 .jrow-st { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: var(--surface-soft); color: var(--text-faint); white-space: nowrap; flex: 0 0 auto; }
 .jrow-st.on { background: var(--brand-100); color: var(--brand-700); }
 .jempty { font-size: 13px; color: var(--text-faint); line-height: 1.5; padding: 18px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); margin-top: 12px; }
+.jmore {
+  display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; padding: 11px; margin-top: 2px;
+  border: none; background: transparent; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 700; color: var(--text-sub);
+}
+.jmore:hover { color: var(--brand-700); }
 
 /* 데스크톱 */
 .dt-head { display: flex; align-items: flex-end; margin-bottom: 28px; }

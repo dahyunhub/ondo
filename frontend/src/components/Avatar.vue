@@ -15,7 +15,9 @@ const props = defineProps({
 const AVA_COLORS = ['#EF9D5E', '#62AdD0', '#E0AE3C', '#B07FD6', '#5FBA86', '#E8897C', '#8089D2', '#D483AC']
 
 const color = computed(() => {
-  const name = props.name || '?'
+  // 이름 입력 전(온보딩 자리표시자 등) 기본색 — 온도 브랜드 노랑
+  const name = props.name
+  if (!name) return 'var(--brand-500)'
   let h = 0
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
   return AVA_COLORS[h % AVA_COLORS.length]
@@ -24,7 +26,7 @@ const color = computed(() => {
 // 성 제외 이름(가독)
 const initial = computed(() => {
   const n = props.name
-  if (!n) return '?'
+  if (!n) return '' // 이름 입력 전엔 깔끔한 브랜드색 원(자리표시자) — 사진 추가 배지가 안내 역할
   return n.slice(n.length > 2 ? 1 : 0)
 })
 

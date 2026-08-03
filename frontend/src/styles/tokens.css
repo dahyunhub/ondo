@@ -173,6 +173,11 @@
   display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px;
   border-radius: 50%; background: var(--success); color: #fff; flex: 0 0 auto;
 }
+/* 모바일에서는 손안에 맞게 조금 더 담백하게 */
+@media (max-width: 899px) {
+  .jr-toast { padding: 11px 16px; font-size: 14px; gap: 8px; }
+  .jr-toast .tick { width: 19px; height: 19px; }
+}
 
 /* ---------- 배너 ---------- */
 .jr-banner {
@@ -190,14 +195,15 @@
 /* ---------- 마이크로 모션 ---------- */
 @media (prefers-reduced-motion: no-preference) {
   .jr-sprout .jr-sun { animation: jr-spin 9s linear infinite; }
-  .jr-sprout .jr-stem { animation: jr-grow 2.4s cubic-bezier(.3,.7,.3,1) infinite alternate; }
-  .jr-sprout .jr-leaf-l { animation: jr-sway 2.4s ease-in-out infinite alternate; transform-origin: 48px 56px; }
-  .jr-sprout .jr-leaf-r { animation: jr-sway 2.4s ease-in-out infinite alternate-reverse; transform-origin: 48px 52px; }
+  .jr-sprout .jr-stem { animation: jr-grow 2.6s cubic-bezier(.4,.65,.35,1) infinite alternate; }
+  .jr-sprout .jr-leaf-l { animation: jr-sway 2.6s ease-in-out infinite alternate; transform-origin: 48px 59px; }
+  .jr-sprout .jr-leaf-r { animation: jr-sway 2.6s ease-in-out infinite alternate-reverse; transform-origin: 48px 54px; }
   .jr-dot-pulse { animation: jr-pulse 1.4s ease-in-out infinite; }
 }
 @keyframes jr-spin { to { transform: rotate(360deg); } }
-@keyframes jr-grow { from { transform: scaleY(.55); } to { transform: scaleY(1); } }
-@keyframes jr-sway { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
+/* 새싹이 '자라는' 느낌 — 세로만 눌러 납작해지지 않도록 밑동 기준 균일 스케일로 부드럽게 커진다. */
+@keyframes jr-grow { from { transform: scale(.9); } to { transform: scale(1); } }
+@keyframes jr-sway { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
 @keyframes jr-pulse { 0%,100% { opacity: .3; transform: scale(.8); } 50% { opacity: 1; transform: scale(1); } }
 
 /* 메뉴 A/B 선택 카드 */
