@@ -14,6 +14,8 @@ const { isDesktop } = useViewport()
 const tab = ref('login') // login | signup
 const email = ref('')
 const password = ref('')
+// 로그인 상태 유지 — ON(기본)은 localStorage 영속, OFF는 sessionStorage(브라우저 닫으면 로그아웃).
+const keepLoggedIn = ref(true)
 // 회원가입 폼 — 로그인과 입력을 분리해 탭 전환 시 섞이지 않게 한다.
 const name = ref('')
 const suEmail = ref('')
@@ -97,7 +99,7 @@ async function submit() {
   loading.value = true
   try {
     const res = await api.post('/auth/login', { email: email.value, password: password.value }, { auth: false })
-    auth.setSession({ accessToken: res.accessToken, teacher: res.teacher })
+    auth.setSession({ accessToken: res.accessToken, teacher: res.teacher, persist: keepLoggedIn.value })
     gotoNext()
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : '로그인 중 문제가 발생했어요.'
@@ -175,8 +177,13 @@ async function submitSignup() {
             <label class="jr-field-label">비밀번호</label>
             <input v-model="password" class="jr-input" type="password" placeholder="비밀번호를 입력해주세요" autocomplete="current-password" />
             <div class="keep-row">
-              <span class="keep-box"><AppIcon name="check" :size="12" :stroke="3" /></span>
-              <span class="keep-lab">로그인 상태 유지</span>
+              <button type="button" class="keep-toggle" role="checkbox" :aria-checked="keepLoggedIn"
+                      @click="keepLoggedIn = !keepLoggedIn">
+                <span class="keep-box" :class="{ on: keepLoggedIn }">
+                  <AppIcon v-if="keepLoggedIn" name="check" :size="12" :stroke="3" />
+                </span>
+                <span class="keep-lab">로그인 상태 유지</span>
+              </button>
               <button type="button" class="find" @click="openForgot">비밀번호 찾기</button>
             </div>
           </div>
@@ -287,10 +294,16 @@ async function submitSignup() {
 
 .form { display: flex; flex-direction: column; gap: 16px; }
 .keep-row { display: flex; align-items: center; gap: 7px; margin-top: 12px; }
-.keep-box {
-  width: 18px; height: 18px; border-radius: 6px; background: var(--brand-100); border: 1.5px solid var(--brand-500);
-  display: flex; align-items: center; justify-content: center; color: var(--brand-700); flex: 0 0 auto;
+.keep-toggle {
+  display: flex; align-items: center; gap: 7px; border: none; background: transparent;
+  font-family: inherit; padding: 0; cursor: pointer;
 }
+.keep-box {
+  width: 18px; height: 18px; border-radius: 6px; background: var(--surface); border: 1.5px solid var(--hair-strong);
+  display: flex; align-items: center; justify-content: center; color: var(--brand-700); flex: 0 0 auto;
+  transition: background .12s ease, border-color .12s ease;
+}
+.keep-box.on { background: var(--brand-100); border-color: var(--brand-500); }
 .keep-lab { font-size: 13.5px; color: var(--text-sub); font-weight: 600; }
 .find { margin-left: auto; font-size: 13.5px; color: var(--text-sub); font-weight: 600; cursor: pointer;
   border: none; background: transparent; font-family: inherit; padding: 0; text-decoration: underline; text-underline-offset: 3px; }

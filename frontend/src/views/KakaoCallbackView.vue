@@ -7,14 +7,19 @@ import { api, ApiError } from '../lib/api'
 import { auth } from '../stores/auth'
 import { session } from '../stores/session'
 import Logo from '../components/Logo.vue'
+import SproutLoader from '../components/SproutLoader.vue'
 
 const router = useRouter()
 const error = ref('')
 
-function goLoginWithError(message) {
+function goLogin() {
+  router.replace({ name: 'login' })
+}
+
+// 실패 시 자동으로 넘기지 않고 화면에 사유를 남긴다 —
+// 예전엔 1.6초 뒤 로그인으로 튕겨 메시지를 읽을 새도 없이 사라졌다.
+function failWith(message) {
   error.value = message
-  // 잠깐 안내 후 로그인 화면으로. (사용자가 바로 다시 시도할 수 있게)
-  setTimeout(() => router.replace({ name: 'login' }), 1600)
 }
 
 onMounted(async () => {
@@ -29,16 +34,16 @@ onMounted(async () => {
 
   if (kakaoError) {
     // 사용자가 동의를 취소했거나 카카오가 오류를 반환한 경우.
-    goLoginWithError('카카오 로그인이 취소되었어요.')
+    failWith('카카오 로그인이 취소되었어요.')
     return
   }
   if (!code) {
-    goLoginWithError('카카오 인증 정보를 받지 못했어요.')
+    failWith('카카오 인증 정보를 받지 못했어요.')
     return
   }
   // state 불일치/부재 = 이 브라우저가 시작하지 않은 콜백(위조) → 코드 전송하지 않고 차단.
   if (!returnedState || returnedState !== savedState) {
-    goLoginWithError('카카오 로그인 요청이 유효하지 않아요. 다시 시도해 주세요.')
+    failWith('카카오 로그인 요청이 유효하지 않아요. 다시 시도해 주세요.')
     return
   }
 
@@ -48,7 +53,7 @@ onMounted(async () => {
     auth.setSession({ accessToken: res.accessToken, teacher: res.teacher })
     router.replace({ name: session.classroom ? 'home' : 'classrooms' })
   } catch (e) {
-    goLoginWithError(e instanceof ApiError ? e.message : '카카오 로그인 중 문제가 발생했어요.')
+    failWith(e instanceof ApiError ? e.message : '카카오 로그인 중 문제가 발생했어요.')
   }
 })
 </script>
@@ -56,8 +61,14 @@ onMounted(async () => {
 <template>
   <div class="cb fullscreen">
     <Logo variant="vertical" :height="120" />
-    <p v-if="!error" class="msg">카카오 로그인 중이에요…</p>
-    <p v-else class="err">{{ error }}</p>
+    <template v-if="!error">
+      <SproutLoader :size="76" />
+      <p class="msg">카카오 로그인 중이에요…</p>
+    </template>
+    <template v-else>
+      <p class="err">{{ error }}</p>
+      <button class="jr-btn jr-btn--primary jr-btn--lg" @click="goLogin">로그인으로 돌아가기</button>
+    </template>
   </div>
 </template>
 

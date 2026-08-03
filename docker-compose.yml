@@ -37,6 +37,9 @@ services:
       AI_API_KEY: ${AI_API_KEY:-}
       AI_MODEL: ${AI_MODEL:-gpt-5.4-mini}
       AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com}
+      # 카카오 로그인 — CLIENT_SECRET 은 콘솔에서 '사용함'이면 필수(미전달 시 토큰 교환 401).
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-}
     expose:
       - "8090"
     ports:
