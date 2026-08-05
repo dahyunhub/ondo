@@ -39,6 +39,9 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'
+	// Cloud SQL for MySQL 커넥터 — Cloud Run 에서 jdbc:mysql:/// (호스트 없는) URL + socketFactory 로 연결.
+	// 로컬·Docker(직접 host:port 연결)에선 미사용이지만 클래스패스에 있어도 무해하다. 버전은 Spring Boot 가 관리하지 않으므로 명시.
+	implementation 'com.google.cloud.sql:mysql-socket-factory-connector-j-8:1.29.0'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'

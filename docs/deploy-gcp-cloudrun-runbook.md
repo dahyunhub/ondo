@@ -105,7 +105,7 @@ Cloud Run → Cloud SQL은 **Cloud SQL Java 커넥터(소켓 팩토리)**로 붙
 dependencies {
     // ... 기존 의존성 ...
     // Cloud SQL for MySQL 커넥터 — jdbc:mysql:/// (호스트 없는) URL + socketFactory 로 연결
-    implementation 'com.google.cloud.sql:mysql-socket-factory-connector-j-8:1.23.1'  // 최신 버전 확인
+    implementation 'com.google.cloud.sql:mysql-socket-factory-connector-j-8:1.29.0'
 }
 ```
 
