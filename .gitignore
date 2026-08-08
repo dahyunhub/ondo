@@ -61,3 +61,7 @@ BMAD-COWORK-사용법.md
 # Claude Code
 .claude/
 .agents/
+
+# Firebase
+firebase-debug.log
+.firebase/
