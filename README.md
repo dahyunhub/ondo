@@ -72,7 +72,7 @@
 | 백엔드 | Java 25 · Spring Boot 4 · Gradle · Spring Data JPA · Flyway |
 | DB | MySQL 8.4 |
 | 인증 | Spring Security(stateless) · JWT · BCrypt |
-| AI | OpenAI Chat Completions · structured outputs(strict) · 기본 모델 `gpt-5.4-mini` |
+| AI | OpenAI Chat Completions · structured outputs(strict) · 기본 모델 `gpt-5.4-nano` |
 | 프론트 | Vue 3(Composition API) · Vite · 반응형(사이드바 ↔ 하단탭) |
 | 인프라 | Docker · docker-compose · 프로덕션 nginx 정적 서빙 |
 | 테스트 | JUnit 5 · Testcontainers(MySQL) |
@@ -254,4 +254,4 @@ erDiagram
 | Epic 4 | 개인 관찰평가 (수동 + 월말 자동 스케줄러) | ✅ 완료 |
 | Epic 5 | 실배포 (prod 프로파일 · nginx 정적 서빙 · `deploy.sh`) | 🔜 진행 중 |
 
-전체 **130개 테스트 통과**(JUnit5 · Testcontainers). AI 일지·개인평가는 실제 OpenAI(`gpt-5.4-mini`)로 end-to-end 검증됨.
+전체 **130개 테스트 통과**(JUnit5 · Testcontainers). AI 일지·개인평가는 실제 OpenAI(`gpt-5.4-nano`)로 end-to-end 검증됨.
