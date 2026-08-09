@@ -75,6 +75,13 @@ ondo:
     email: ${DEMO_EMAIL:demo@ondo.app}
     password: ${DEMO_PASSWORD:ondo-demo}
     name: ${DEMO_NAME:온도}
+  sentry:
+    # 에러 모니터링. DSN 이 비어 있으면 초기화하지 않는다(dev·테스트 완전 무동작). 운영에서만 주입.
+    # 5xx 서버 오류만 GlobalExceptionHandler 에서 전송하며, PII 는 보내지 않는다(NFR-1).
+    dsn: ${SENTRY_DSN:}
+    environment: ${SENTRY_ENVIRONMENT:}
+    release: ${SENTRY_RELEASE:}
+    traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.0}
   report:
     # 월말 자동 개인평가(FR-9) 실행 주기. Spring cron — L=말일.
     # 기본값 "-" = 비활성(Scheduled.CRON_DISABLED). 평가 생성은 교사 수동(POST /children/{id}/reports)으로만.

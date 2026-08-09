@@ -1,6 +1,7 @@
 package com.ondo.common.exception;
 
 import com.ondo.common.response.ApiError;
+import io.sentry.Sentry;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +32,7 @@ public class GlobalExceptionHandler {
         // 4xx(클라이언트 귀책)는 WARN, 5xx(장애)는 ERROR
         if (code.getStatus().is5xxServerError()) {
             log.error("BusinessException [{}] at {}", code, request.getRequestURI(), ex);
+            captureToSentry(ex, code.name(), request);
         } else {
             log.warn("BusinessException [{}] at {}: {}", code, request.getRequestURI(), ex.getMessage());
         }
@@ -92,8 +94,23 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleFallback(Exception ex, HttpServletRequest request) {
         ErrorCode code = ErrorCode.INTERNAL_ERROR;
         log.error("Unhandled exception at {}", request.getRequestURI(), ex);
+        captureToSentry(ex, code.name(), request);
         ApiError body = ApiError.of(code.getStatus().value(), code.name(), code.getDefaultMessage(),
                 request.getRequestURI());
         return ResponseEntity.status(code.getStatus()).body(body);
+    }
+
+    /**
+     * 서버 오류(5xx)만 Sentry 로 전송한다. 4xx(클라이언트 귀책)는 노이즈라 보내지 않는다.
+     * Sentry 미초기화(DSN 미설정) 시 no-op 이므로 dev·테스트에 영향이 없다.
+     * NFR-1: 아이 실명·본문 없이 에러코드·HTTP 메서드·요청 경로(쿼리스트링 제외)만 태그로 남긴다.
+     */
+    private void captureToSentry(Throwable ex, String errorCode, HttpServletRequest request) {
+        Sentry.withScope(scope -> {
+            scope.setTag("error_code", errorCode);
+            scope.setTag("http.method", request.getMethod());
+            scope.setTag("http.path", request.getRequestURI());
+            Sentry.captureException(ex);
+        });
     }
 }
