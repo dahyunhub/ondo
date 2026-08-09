@@ -28,6 +28,10 @@ public class DemoReadOnlyFilter extends OncePerRequestFilter {
 
     private static final Set<String> MUTATING = Set.of("POST", "PUT", "PATCH", "DELETE");
 
+    // 데모 계정에도 허용하는 변경 요청 — 인앱 피드백은 데이터 훼손이 아니라 수집이라, 포트폴리오
+    // 방문자(데모 계정)의 의견도 받는다. 자체 append-only 테이블에만 쓰므로 시연 데이터에 영향 없다.
+    private static final Set<String> EXEMPT_PATHS = Set.of("/api/v1/feedback");
+
     // 보안 필터는 auto-config(Jackson) 보다 이른 시점에 만들어져 공용 ObjectMapper 주입이 실패할 수 있다.
     // 에러 바디는 단순 레코드라 자체 인스턴스로 충분하다.
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -49,6 +53,7 @@ public class DemoReadOnlyFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
         if (demoProperties.isEnabled()
                 && MUTATING.contains(request.getMethod())
+                && !EXEMPT_PATHS.contains(request.getRequestURI())
                 && isDemoPrincipal()) {
             writeForbidden(request, response);
             return;

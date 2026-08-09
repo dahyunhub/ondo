@@ -6,6 +6,7 @@ import { auth } from './stores/auth'
 import { notice } from './stores/notice'
 import Sidebar from './components/Sidebar.vue'
 import BottomTab from './components/BottomTab.vue'
+import FeedbackWidget from './components/FeedbackWidget.vue'
 
 const route = useRoute()
 const { isDesktop } = useViewport()
@@ -41,6 +42,9 @@ const showTab = computed(() => TAB_ROUTES.includes(route.name))
 
     <!-- 읽기 전용 데모 표식 — 레이아웃을 밀지 않는 플로팅 배지(클릭 통과) -->
     <div v-if="isDemo" class="demo-badge">🍊 읽기 전용 데모</div>
+
+    <!-- 인앱 피드백 — 앱 셸(로그인 이후) 화면에서만 노출. 데모 계정도 보낼 수 있다. -->
+    <FeedbackWidget v-if="useShell" />
 
     <!-- 전역 토스트(데모 읽기 전용 안내 등) -->
     <Transition name="toast">

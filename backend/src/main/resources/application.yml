@@ -82,6 +82,9 @@ ondo:
     environment: ${SENTRY_ENVIRONMENT:}
     release: ${SENTRY_RELEASE:}
     traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.0}
+  feedback:
+    # 인앱 피드백 알림 수신 주소. 비우면 DB(feedback 테이블)에만 적재하고 메일은 보내지 않는다.
+    to: ${FEEDBACK_TO:}
   report:
     # 월말 자동 개인평가(FR-9) 실행 주기. Spring cron — L=말일.
     # 기본값 "-" = 비활성(Scheduled.CRON_DISABLED). 평가 생성은 교사 수동(POST /children/{id}/reports)으로만.

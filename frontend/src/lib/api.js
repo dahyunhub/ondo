@@ -100,4 +100,6 @@ export const api = {
   del: (p, opts) => request('DELETE', p, opts),
   getBlob,
   putBinary,
+  // 인앱 피드백 전송 — {message, category?, page?}
+  sendFeedback: (payload) => request('POST', '/feedback', { body: payload }),
 }
