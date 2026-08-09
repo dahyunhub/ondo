@@ -68,6 +68,13 @@ ondo:
     # 도메인을 구입하면 base-url 값만 바꾸면 된다(코드 변경 없음).
     from: ${MAIL_FROM:no-reply@ondo.local}
     base-url: ${APP_BASE_URL:http://localhost:5273}
+  demo:
+    # 읽기 전용 데모 계정(포트폴리오 라이브 데모). true 일 때만 데모 교사·시연 데이터가 멱등 주입되고,
+    # 해당 계정의 변경 요청(POST/PUT/PATCH/DELETE)은 403(DEMO_READ_ONLY)으로 차단된다. 기본 비활성.
+    enabled: ${DEMO_ENABLED:false}
+    email: ${DEMO_EMAIL:demo@ondo.app}
+    password: ${DEMO_PASSWORD:ondo-demo}
+    name: ${DEMO_NAME:온도}
   report:
     # 월말 자동 개인평가(FR-9) 실행 주기. Spring cron — L=말일.
     # 기본값 "-" = 비활성(Scheduled.CRON_DISABLED). 평가 생성은 교사 수동(POST /children/{id}/reports)으로만.

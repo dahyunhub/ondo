@@ -1,8 +1,14 @@
 // 온도 API 클라이언트 — fetch 래퍼.
 // 개발 중엔 Vite 프록시(/api → :8090)를 통해 호출한다.
 import { auth } from '../stores/auth'
+import { notice } from '../stores/notice'
 
 const BASE = '/api/v1'
+
+// 읽기 전용 데모 계정이 변경을 시도하면 서버가 이 코드로 막는다 → 화면 어디서든 부드럽게 안내.
+function noticeIfDemoReadOnly(code, message) {
+  if (code === 'DEMO_READ_ONLY') notice.show(message || '읽기 전용 데모 계정이에요.')
+}
 
 /** 표준 에러 응답({code,message,...})을 담는 에러 타입. */
 export class ApiError extends Error {
@@ -47,6 +53,7 @@ async function request(method, path, { body, auth: needAuth = true } = {}) {
   if (!res.ok) {
     const code = data && data.code
     const message = (data && data.message) || `요청 실패 (${res.status})`
+    noticeIfDemoReadOnly(code, message)
     throw new ApiError(res.status, code, message, data)
   }
   return data
@@ -79,6 +86,7 @@ async function putBinary(path, blob, contentType) {
   let data = null
   if (text) { try { data = JSON.parse(text) } catch { data = text } }
   if (!res.ok) {
+    noticeIfDemoReadOnly(data && data.code, data && data.message)
     throw new ApiError(res.status, data && data.code, (data && data.message) || `요청 실패 (${res.status})`, data)
   }
   return data

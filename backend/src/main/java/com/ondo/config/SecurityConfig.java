@@ -1,5 +1,7 @@
 package com.ondo.config;
 
+import com.ondo.auth.DemoReadOnlyFilter;
+import com.ondo.auth.TeacherRepository;
 import com.ondo.auth.jwt.JwtAuthFilter;
 import com.ondo.auth.jwt.JwtProperties;
 import com.ondo.auth.jwt.JwtProvider;
@@ -21,13 +23,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  */
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, DemoProperties.class})
 public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    JwtProvider jwtProvider,
-                                                   RestAuthenticationEntryPoint authenticationEntryPoint)
+                                                   RestAuthenticationEntryPoint authenticationEntryPoint,
+                                                   TeacherRepository teacherRepository,
+                                                   DemoProperties demoProperties)
             throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -38,7 +42,10 @@ public class SecurityConfig {
                                 "/actuator/health").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
-                .addFilterBefore(new JwtAuthFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new JwtAuthFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class)
+                // JwtAuthFilter 뒤 — principal 이 채워진 다음 데모 계정의 변경 요청을 차단한다.
+                .addFilterAfter(new DemoReadOnlyFilter(teacherRepository, demoProperties),
+                        JwtAuthFilter.class);
         return http.build();
     }
 

@@ -2,11 +2,17 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useViewport } from './lib/useViewport'
+import { auth } from './stores/auth'
+import { notice } from './stores/notice'
 import Sidebar from './components/Sidebar.vue'
 import BottomTab from './components/BottomTab.vue'
 
 const route = useRoute()
 const { isDesktop } = useViewport()
+
+// 읽기 전용 데모 계정으로 로그인했는지 — 이메일로 식별(백엔드 ondo.demo.email 과 동일).
+const DEMO_EMAIL = 'demo@ondo.app'
+const isDemo = computed(() => auth.teacher?.email === DEMO_EMAIL && route.meta.shell === true)
 
 // 셸(사이드바/하단탭) 적용 라우트
 const useShell = computed(() => route.meta.shell === true)
@@ -32,5 +38,52 @@ const showTab = computed(() => TAB_ROUTES.includes(route.name))
 
     <!-- 전체화면 라우트(로그인·반선택): 화면이 자체 반응형 처리 -->
     <RouterView v-else />
+
+    <!-- 읽기 전용 데모 표식 — 레이아웃을 밀지 않는 플로팅 배지(클릭 통과) -->
+    <div v-if="isDemo" class="demo-badge">🍊 읽기 전용 데모</div>
+
+    <!-- 전역 토스트(데모 읽기 전용 안내 등) -->
+    <Transition name="toast">
+      <div v-if="notice.message" class="app-toast">{{ notice.message }}</div>
+    </Transition>
   </div>
 </template>
+
+<style scoped>
+.demo-badge {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  z-index: 60;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand-700, #b25a1e);
+  background: var(--brand-100, #fff1e6);
+  border: 1px solid var(--brand-200, #ffd9bd);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+  pointer-events: none;
+  user-select: none;
+}
+
+.app-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  z-index: 70;
+  max-width: min(88vw, 420px);
+  padding: 11px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  color: #fff;
+  background: rgba(30, 30, 30, .92);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .22);
+}
+
+.toast-enter-active, .toast-leave-active { transition: opacity .25s, transform .25s; }
+.toast-enter-from, .toast-leave-to { opacity: 0; transform: translate(-50%, 8px); }
+</style>
