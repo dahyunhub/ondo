@@ -187,7 +187,10 @@ async function submit() {
 .kid-x { border: none; background: transparent; color: var(--text-faint); cursor: pointer; flex: 0 0 auto; padding: 6px; }
 .file-hidden { display: none; }
 .kid-photo { position: relative; flex: 0 0 auto; border: none; background: transparent; padding: 0; cursor: pointer; line-height: 0; }
-.kid-photo-img, .kid-photo :deep(.jr-avatar) { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; display: block; font-size: 15px; }
+.kid-photo-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; display: block; }
+/* 이니셜 아바타(span)는 base .jr-avatar 의 inline-flex 중앙정렬을 유지해야 이름이 원 안에 가운데로 온다.
+   여기서 display 를 건드리면 글자가 위로 붙어 잘린다 — 크기·글꼴크기만 덮어쓴다. */
+.kid-photo :deep(.jr-avatar) { width: 40px; height: 40px; font-size: 15px; }
 .kid-cam { position: absolute; right: -3px; bottom: -3px; width: 17px; height: 17px; border-radius: 50%; background: var(--brand-500); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--surface-soft); }
 .sex { display: flex; gap: 6px; flex: 0 0 auto; }
 .sex .jr-toggle { cursor: pointer; padding: 8px 12px; }

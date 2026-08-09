@@ -3,6 +3,17 @@
    봄 햇살 파스텔 + 노랑. 모든 화면이 공유.
    ============================================================ */
 
+/* 브랜드 서체 — omyu pretty (전역 본문/로고 공용) */
+@font-face {
+  font-family: 'omyu pretty';
+  src: url('../assets/fonts/omyu-pretty.woff2') format('woff2');
+  /* 실제로 Regular 한 종만 있는 폰트 — 400 으로 선언해야 굵은 요청(제목·버튼)에
+     브라우저 합성 볼드가 걸려 굵기 대비가 살아난다. (100~900 로 선언하면 전부 얇아짐) */
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 .jr {
   /* 브랜드 / 포인트 (파스텔 옐로우) */
   --brand-100: #FFF6DC;
@@ -39,15 +50,22 @@
   --r-input: 16px;
   --r-pill: 999px;
 
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', system-ui, sans-serif;
+  font-family: 'omyu pretty', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', system-ui, sans-serif;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   letter-spacing: -0.01em;
+  /* omyu pretty 는 x-height(0.477em)가 낮아 같은 px 라도 작아 보임 →
+     x-height 를 맞춰 전역을 균일하게 키운다(px 값은 그대로). 배율 = 값 ÷ 0.477.
+     0.53→+11% · 0.56→+17% · 0.57→+20%. 여기 숫자 하나로 전체 크기를 조절. */
+  font-size-adjust: 0.56;
 }
 
 .jr *, .jr *::before, .jr *::after { box-sizing: border-box; }
-.jr-logo { font-family: 'Jua', 'Pretendard', sans-serif; letter-spacing: 0; white-space: nowrap; flex: 0 0 auto; }
+/* 폼 컨트롤은 UA 스타일 탓에 font 계열을 상속받지 않음 → x-height 보정도 끊긴다.
+   font-family 를 각자 inherit 하듯, font-size-adjust 도 명시적으로 상속시킨다. */
+.jr button, .jr input, .jr select, .jr textarea { font-size-adjust: inherit; }
+.jr-logo { font-family: 'omyu pretty', 'Jua', 'Pretendard', sans-serif; letter-spacing: 0; white-space: nowrap; flex: 0 0 auto; }
 
 /* ---------- 타이포 ---------- */
 .jr-display { font-size: 28px; font-weight: 800; line-height: 1.18; letter-spacing: -0.02em; }
