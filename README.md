@@ -7,6 +7,8 @@
 짧은 **메모** 한 줄이면 충분해요.<br>
 아이별로 기록이 쌓이고, **AI**가 누리과정 기반 **하루 일지**와 **개인 관찰평가**를 대신 써 드립니다.
 
+**▶ 라이브 데모 · [ondo-prod.web.app](https://ondo-prod.web.app/intro)** — 가입 없이 **읽기 전용 데모 계정**(`demo@ondo.app` / `ondo-demo`)으로 바로 둘러보세요.
+
 </div>
 
 ---
@@ -31,6 +33,7 @@
 - **AI 하루 일지** — 오늘 메모를 모아 누리과정 5영역 일지 초안을 자동 생성 → 검토·수정·확정·재분석.
 - **개인 관찰평가** — 아이별 기록을 모아 상담·발달평가용 평가서를 작성(월말 자동 생성 포함).
 - **반·아이 관리** — 담당 반 선택·추가, 아이 등록·수정·숨김/복원, 프로필 사진(브라우저 1:1 크롭).
+- **로그인** — 이메일 회원가입 · **카카오 로그인** · 비밀번호 재설정(이메일 링크) · 로그인 상태 유지.
 - **어디서나** — 데스크톱·모바일 반응형. 교실에선 폰으로 기록하고, 정리는 PC로.
 
 > 🔒 AI에 보낼 때 아이 실명은 **비식별화**되고 분석 후 복원됩니다. 원본 기록은 그대로 안전하게 보존돼요.
@@ -53,17 +56,19 @@
 
 ## 📱 실행 화면
 
+> 아래는 모두 **읽기 전용 데모 계정**으로 로그인한 실제 화면이에요 — [라이브에서 바로 둘러보기](https://ondo-prod.web.app/intro) · `demo@ondo.app` / `ondo-demo`
+
 **데스크톱 (사이드바 레이아웃)**
 
-| 로그인 | 홈 | 아이 목록 | 아이 타임라인 |
+| 홈 | AI 하루 일지 | 아이 타임라인 | 아이 목록 |
 |:---:|:---:|:---:|:---:|
-| <img src="docs/screenshots/login-desktop.png" width="230"> | <img src="docs/screenshots/home-desktop.png" width="230"> | <img src="docs/screenshots/children-desktop.png" width="230"> | <img src="docs/screenshots/timeline-desktop.png" width="230"> |
+| <img src="docs/screenshots/home-desktop.png" width="230"> | <img src="docs/screenshots/journal-desktop.png" width="230"> | <img src="docs/screenshots/timeline-desktop.png" width="230"> | <img src="docs/screenshots/children-desktop.png" width="230"> |
 
 **모바일 (하단 탭 레이아웃)**
 
-| 홈 | 아이 목록 | 빠른 메모 | 아이 타임라인 |
+| 홈 | 아이 타임라인 | AI 하루 일지 | 빠른 메모 |
 |:---:|:---:|:---:|:---:|
-| <img src="docs/screenshots/home-mobile.png" width="150"> | <img src="docs/screenshots/children-mobile.png" width="150"> | <img src="docs/screenshots/memo-mobile.png" width="150"> | <img src="docs/screenshots/timeline-mobile.png" width="150"> |
+| <img src="docs/screenshots/home-mobile.png" width="150"> | <img src="docs/screenshots/timeline-mobile.png" width="150"> | <img src="docs/screenshots/journal-mobile.png" width="150"> | <img src="docs/screenshots/memo-mobile.png" width="150"> |
 
 ## ⚙️ 기술 스택
 
@@ -71,10 +76,11 @@
 |------|------|
 | 백엔드 | Java 25 · Spring Boot 4 · Gradle · Spring Data JPA · Flyway |
 | DB | MySQL 8.4 |
-| 인증 | Spring Security(stateless) · JWT · BCrypt |
+| 인증 | Spring Security(stateless) · JWT · BCrypt · **카카오 OAuth** |
 | AI | OpenAI Chat Completions · structured outputs(strict) · 기본 모델 `gpt-5.4-nano` |
 | 프론트 | Vue 3(Composition API) · Vite · 반응형(사이드바 ↔ 하단탭) |
-| 인프라 | Docker · docker-compose · 프로덕션 nginx 정적 서빙 |
+| 인프라 | Docker · docker-compose · nginx(정적 서빙·gzip) |
+| 배포 | GCP Cloud Run(API) · Cloud SQL for MySQL · Firebase Hosting(프론트·`/api` 리라이트) |
 | 테스트 | JUnit 5 · Testcontainers(MySQL) |
 
 ## 🚀 빠르게 실행
@@ -87,6 +93,7 @@ curl localhost:8090/actuator/health # {"status":"UP"}
 ```
 
 - **바로 둘러보기(dev)**: 시드 계정 `teacher@ondo.dev` / `password1234` 로 로그인하면 만 4세반·아이 23명이 준비돼 있어요. (prod 프로파일은 시드 없이 회원가입으로 시작)
+- **읽기 전용 데모**: `DEMO_ENABLED=true` 면 `demo@ondo.app` / `ondo-demo` 계정과 시연 데이터(반·아이 23명·메모·AI 일지·관찰평가)가 멱등 주입되고, 이 계정의 변경 요청은 서버가 차단(`DEMO_READ_ONLY`)해요 — 라이브 데모가 그대로 보존됩니다.
 - 프론트 개발 서버: `cd frontend && npm install && npm run dev` → http://localhost:5273 (`/api` 는 :8090 으로 프록시)
 - 창 폭 **900px** 기준으로 데스크톱/모바일 레이아웃이 자동 전환됩니다.
 
@@ -132,10 +139,24 @@ cp .env.example .env     # 시크릿 채우기 (.env 는 커밋 금지)
 
 </details>
 
+## ☁️ 배포
+
+**라이브: [ondo-prod.web.app](https://ondo-prod.web.app/intro)** (GCP 서울 리전 `asia-northeast3`)
+
+| 구성 | 서비스 |
+|------|--------|
+| 프론트(SPA) | **Firebase Hosting** — 정적 서빙 + `/api/**` → Cloud Run 리라이트 |
+| API | **Cloud Run** — 컨테이너 오토스케일(0→N), 시크릿은 런타임 env 주입 |
+| DB | **Cloud SQL for MySQL** — Cloud SQL 커넥터로 접속(프라이빗) |
+| 스키마 | Flyway 마이그레이션 자동 적용(`ddl-auto=validate`) |
+
+같은 컨테이너 이미지를 로컬(docker-compose)·클라우드(Cloud Run)에서 그대로 돌립니다. 실배포 절차는 런북 참고 — [GCP Cloud Run](docs/deploy-gcp-cloudrun-runbook.md) · [AWS(RDS+caddy)](docs/deploy-aws-runbook.md).
+
 ## 📚 더 알아보기
 
 - **기획 산출물** — [`docs/portfolio/`](docs/portfolio/) : 사용자 인터뷰 · As-Is/To-Be · User Flow & IA · 지표 설계
 - **구현 명세** — [`docs/specs/`](docs/specs/) : API · 데이터 모델 · 에러 코드 · AI 연동
+- **배포 런북** — [`docs/deploy-gcp-cloudrun-runbook.md`](docs/deploy-gcp-cloudrun-runbook.md) · [`docs/deploy-aws-runbook.md`](docs/deploy-aws-runbook.md)
 
 <details>
 <summary>저장소 구조</summary>
@@ -144,10 +165,11 @@ cp .env.example .env     # 시크릿 채우기 (.env 는 커밋 금지)
 ondo/
 ├── backend/     # Spring Boot + Java REST API
 │   └── src/main/java/com/ondo/
-│       ├── auth/       # 회원가입 · 로그인 · JWT
+│       ├── auth/       # 회원가입 · 로그인 · JWT · 비밀번호 재설정 · kakao(OAuth)
 │       ├── classroom/  # 담당 반 · 새 반 생성
 │       ├── child/      # 아이 등록·수정 · 보존형 삭제(숨김)·복원
 │       ├── memo/       # 메모 기록 · 타임라인 · 누리과정 영역
+│       ├── warmth/     # 관찰 온도(최근 2주 관찰 농도 · 잠시 접어두기)
 │       ├── journal/    # AI 하루 일지(생성·검토·확정·재분석)
 │       ├── report/     # 개인 관찰평가(수동 + 월말 자동 스케줄러)
 │       ├── photo/      # 프로필 이미지(아이·교사)
@@ -248,10 +270,10 @@ erDiagram
 | 단계 | 내용 | 상태 |
 |------|------|------|
 | Epic 1 | 골격 · 인증(JWT) · 반 선택 · 아이 등록·관리 | ✅ 완료 |
-| Epic 1+ | 회원가입 · 새 반 추가 · 아이 숨김/복원 · 프로필 사진 | ✅ 완료 |
-| Epic 2 | 메모 기록 · 타임라인 · 누리과정 영역 분류 | ✅ 완료 |
+| Epic 1+ | 회원가입 · 카카오 로그인 · 비밀번호 재설정 · 새 반 추가 · 아이 숨김/복원 · 프로필 사진 | ✅ 완료 |
+| Epic 2 | 메모 기록 · 타임라인 · 누리과정 영역 분류 · 관찰 온도 | ✅ 완료 |
 | Epic 3 | AI 하루 일지 (비식별화 → 분석 → 검증 · 재분석) | ✅ 완료 |
 | Epic 4 | 개인 관찰평가 (수동 + 월말 자동 스케줄러) | ✅ 완료 |
-| Epic 5 | 실배포 (prod 프로파일 · nginx 정적 서빙 · `deploy.sh`) | 🔜 진행 중 |
+| Epic 5 | 실배포 — Cloud Run · Cloud SQL · Firebase Hosting ([라이브](https://ondo-prod.web.app/intro)) | ✅ 완료 |
 
-전체 **130개 테스트 통과**(JUnit5 · Testcontainers). AI 일지·개인평가는 실제 OpenAI(`gpt-5.4-nano`)로 end-to-end 검증됨.
+전체 **200여 개 테스트 통과**(JUnit5 · Testcontainers). AI 일지·개인평가는 실제 OpenAI(`gpt-5.4-nano`)로 end-to-end 검증됨.
