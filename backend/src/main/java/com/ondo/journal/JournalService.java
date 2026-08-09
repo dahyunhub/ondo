@@ -193,9 +193,26 @@ public class JournalService {
 
     private JournalAnalysisResult attempt(AiRequest request, RestorationContext ctx, Set<Integer> expectedIndices) {
         String raw = aiClient.complete(request);                 // TX 밖 외부 호출
-        JournalAnalysisResult result = journalResultParser.parse(ctx.restore(raw)); // 복원 후 파싱
+        JournalAnalysisResult result = stripMemoMarkers(journalResultParser.parse(ctx.restore(raw))); // 복원·파싱 후 본문 인덱스 마커 제거
         outputValidator.validate(result, expectedIndices);
         return result;
+    }
+
+    /**
+     * 서술 본문(summary·areas)에 새어 나온 메모 인덱스 마커([1],[2] …)를 제거한다.
+     * 프롬프트로도 금지하지만 소형 모델이 규칙을 어길 수 있어 최종 방어선으로 코드에서도 걷어낸다.
+     * memoClassifications 는 구조화 데이터라 그대로 둔다. 복원 후라 아이 이름은 대괄호가 없어 오제거 위험이 없다.
+     */
+    private JournalAnalysisResult stripMemoMarkers(JournalAnalysisResult result) {
+        Map<CurriculumArea, String> cleanedAreas = new LinkedHashMap<>();
+        result.areas().forEach((area, text) -> cleanedAreas.put(area, stripMarkers(text)));
+        return new JournalAnalysisResult(stripMarkers(result.summary()), cleanedAreas, result.memoClassifications());
+    }
+
+    /** 본문에서 메모 인덱스 마커([n])를 지우고 그로 인해 생긴 이중 공백을 정리한다. */
+    private static String stripMarkers(String text) {
+        if (text == null) return null;
+        return text.replaceAll("\\[\\d+\\]", "").replaceAll(" {2,}", " ").strip();
     }
 
     /** [12] 반·날짜 일지 조회 + 재분석 안내(FR-6). 없으면 JOURNAL_NOT_FOUND. AI 미사용. */
