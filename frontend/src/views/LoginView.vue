@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { api, ApiError } from '../lib/api'
 import { auth } from '../stores/auth'
 import { session } from '../stores/session'
@@ -9,9 +9,11 @@ import Logo from '../components/Logo.vue'
 import AppIcon from '../components/AppIcon.vue'
 
 const router = useRouter()
+const route = useRoute()
 const { isDesktop } = useViewport()
 
-const tab = ref('login') // login | signup
+// 소개 페이지의 '시작하기' 등에서 ?tab=signup 으로 넘어오면 가입 탭을 먼저 연다.
+const tab = ref(route.query.tab === 'signup' ? 'signup' : 'login') // login | signup
 const email = ref('')
 const password = ref('')
 // 로그인 상태 유지 — ON(기본)은 localStorage 영속, OFF는 sessionStorage(브라우저 닫으면 로그아웃).
@@ -254,6 +256,12 @@ async function submitSignup() {
           </svg>
           카카오로 시작하기
         </button>
+
+        <!-- 온도가 처음인 분을 위한 소개 페이지 안내 -->
+        <p class="intro-link">
+          온도가 처음이신가요?
+          <button type="button" @click="router.push({ name: 'intro' })">서비스 소개 보기</button>
+        </p>
       </div>
     </section>
   </div>
@@ -293,6 +301,8 @@ async function submitSignup() {
 .tab.on .ink { background: var(--brand-500); }
 
 .form { display: flex; flex-direction: column; gap: 16px; }
+/* 제출 버튼 라운드를 입력창과 맞춘다(기본 pill은 이 화면에선 과하게 둥글다). */
+.form .jr-btn { border-radius: var(--r-input); }
 .keep-row { display: flex; align-items: center; gap: 7px; margin-top: 12px; }
 .keep-toggle {
   display: flex; align-items: center; gap: 7px; border: none; background: transparent;
@@ -329,4 +339,12 @@ async function submitSignup() {
 .kakao-btn:hover { filter: brightness(0.97); }
 .kakao-btn:disabled { opacity: .6; cursor: default; }
 .kakao-ico { flex: 0 0 auto; }
+
+/* 소개 페이지 안내 링크 */
+.intro-link { margin: 22px 0 0; text-align: center; font-size: 13.5px; font-weight: 500; color: var(--text-faint); }
+.intro-link button {
+  border: none; background: transparent; font-family: inherit; font-size: 13.5px; font-weight: 700;
+  color: var(--brand-700); cursor: pointer; padding: 0 2px; text-decoration: underline; text-underline-offset: 3px;
+}
+.intro-link button:hover { color: #d89f28; }
 </style>

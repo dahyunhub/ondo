@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { auth } from '../stores/auth'
 import { session } from '../stores/session'
 
+import IntroView from '../views/IntroView.vue'
 import LoginView from '../views/LoginView.vue'
 import KakaoCallbackView from '../views/KakaoCallbackView.vue'
 import PasswordResetView from '../views/PasswordResetView.vue'
@@ -16,6 +17,8 @@ import MeView from '../views/MeView.vue'
 import HelpView from '../views/HelpView.vue'
 
 const routes = [
+  // 서비스에 처음 들어온(로그아웃) 사용자가 보는 소개 페이지. CTA는 로그인 화면으로 넘긴다.
+  { path: '/intro', name: 'intro', component: IntroView, meta: { public: true } },
   { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
   { path: '/oauth/kakao/callback', name: 'kakao-callback', component: KakaoCallbackView, meta: { public: true } },
   // 메일 링크로 들어오는 화면이라 로그인 없이 접근할 수 있어야 한다(비밀번호를 잊은 사람은 토큰이 없다).
@@ -38,10 +41,13 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
+  // 로그아웃 상태에서 보호된 화면에 접근하면 로그인으로 보낸다.
+  // 소개 페이지(/intro)는 로그인 화면의 '서비스 소개 보기' 링크나 직접 URL로 접근한다.
   if (!to.meta.public && !auth.isAuthenticated) {
     return { name: 'login' }
   }
-  if (to.name === 'login' && auth.isAuthenticated) {
+  // 이미 로그인한 사용자는 소개·로그인 화면을 건너뛰고 바로 앱으로.
+  if ((to.name === 'login' || to.name === 'intro') && auth.isAuthenticated) {
     return { name: session.classroom ? 'home' : 'classrooms' }
   }
   if (to.meta.needsClassroom && !session.classroom) {
