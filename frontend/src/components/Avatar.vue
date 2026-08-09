@@ -62,7 +62,9 @@ watch(cacheKey, loadPhoto, { immediate: true })
 </script>
 
 <template>
-  <img v-if="showImg" :class="cls" :src="src" :alt="name" />
+  <!-- 사진 로드/디코드가 실패하면(@error) 이니셜 폴백으로 넘어간다 —
+       photoUpdatedAt 은 있는데 실제 바이트가 없거나 깨진 경우, 깨진 이미지 아이콘을 남기지 않기 위함. -->
+  <img v-if="showImg" :class="cls" :src="src" :alt="name" @error="failed = true" />
   <span v-else :class="cls" :style="{ background: color }">{{ initial }}</span>
 </template>
 
