@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../lib/api'
 import { session } from '../stores/session'
@@ -8,6 +8,7 @@ import Avatar from '../components/Avatar.vue'
 import AppIcon from '../components/AppIcon.vue'
 import SproutLoader from '../components/SproutLoader.vue'
 import ChildFormModal from '../components/ChildFormModal.vue'
+import Pagination from '../components/Pagination.vue'
 
 const router = useRouter()
 const { isDesktop } = useViewport()
@@ -91,6 +92,15 @@ async function restoreChild(c) {
 
 const count = computed(() => children.value.length)
 const hiddenCount = computed(() => hiddenChildren.value.length)
+
+// 명단이 길어지면(25명 초과) 페이지로 나눈다 — 한 페이지 25명.
+const PAGE_SIZE = 25
+const page = ref(1)
+const totalPages = computed(() => Math.max(1, Math.ceil(count.value / PAGE_SIZE)))
+const pagedChildren = computed(() => children.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE))
+// 명단이 줄어(숨김·삭제) 현재 페이지가 사라지면 마지막 페이지로 보정.
+watch(totalPages, (t) => { if (page.value > t) page.value = t })
+
 onMounted(() => { load(); loadHidden(); loadWarmth() })
 </script>
 
@@ -119,17 +129,20 @@ onMounted(() => { load(); loadHidden(); loadWarmth() })
       <div class="empty-d">{{ session.classroom?.name }}의 첫 아이를 등록해 볼까요?</div>
       <button class="jr-btn jr-btn--primary" @click="adding = true"><AppIcon name="plus" :size="20" :stroke="2.6" /> 아이 등록하기</button>
     </div>
-    <div v-else class="grid dt">
-      <button v-for="c in children" :key="c.id" class="kid jr-card" @click="openTimeline(c)">
-        <Avatar :name="c.name" size="lg" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''"
-                :warmth="warmth[c.id] === 'SNOOZED' ? '' : (warmth[c.id] || '')" />
-        <span class="kid-name">{{ c.name }}</span>
-        <span v-if="warmth[c.id] === 'SNOOZED'" class="kid-chip snoozed"
-              :class="{ busy: unsnoozing === c.id }" role="button"
-              title="탭하면 다시 온도 판정에 포함돼요" @click.stop="unsnooze(c)">접어둠 · 해제</span>
-        <span v-else class="kid-chip">{{ fmtBirth(c.birthDate) }} · {{ c.gender === 'MALE' ? '남' : '여' }}</span>
-      </button>
-    </div>
+    <template v-else>
+      <div class="grid dt">
+        <button v-for="c in pagedChildren" :key="c.id" class="kid jr-card" @click="openTimeline(c)">
+          <Avatar :name="c.name" size="lg" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''"
+                  :warmth="warmth[c.id] === 'SNOOZED' ? '' : (warmth[c.id] || '')" />
+          <span class="kid-name">{{ c.name }}</span>
+          <span v-if="warmth[c.id] === 'SNOOZED'" class="kid-chip snoozed"
+                :class="{ busy: unsnoozing === c.id }" role="button"
+                title="탭하면 다시 온도 판정에 포함돼요" @click.stop="unsnooze(c)">접어둠 · 해제</span>
+          <span v-else class="kid-chip">{{ fmtBirth(c.birthDate) }} · {{ c.gender === 'MALE' ? '남' : '여' }}</span>
+        </button>
+      </div>
+      <Pagination :page="page" :total-pages="totalPages" @update:page="(p) => (page = p)" style="margin-top:24px" />
+    </template>
   </div>
 
   <!-- ============ 모바일 ============ -->
@@ -164,17 +177,20 @@ onMounted(() => { load(); loadHidden(); loadWarmth() })
         <div class="empty-d">{{ session.classroom?.name }}의 첫 아이를 등록해 볼까요?</div>
         <button class="jr-btn jr-btn--primary" @click="adding = true"><AppIcon name="plus" :size="20" :stroke="2.6" /> 아이 등록하기</button>
       </div>
-      <div v-else class="grid">
-        <button v-for="c in children" :key="c.id" class="kid jr-card" @click="openTimeline(c)">
-          <Avatar :name="c.name" size="lg" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''"
-                  :warmth="warmth[c.id] === 'SNOOZED' ? '' : (warmth[c.id] || '')" />
-          <span class="kid-name">{{ c.name }}</span>
-          <span v-if="warmth[c.id] === 'SNOOZED'" class="kid-chip snoozed"
-                :class="{ busy: unsnoozing === c.id }" role="button"
-                title="탭하면 다시 온도 판정에 포함돼요" @click.stop="unsnooze(c)">접어둠 · 해제</span>
-          <span v-else class="kid-chip">{{ fmtBirth(c.birthDate) }} · {{ c.gender === 'MALE' ? '남' : '여' }}</span>
-        </button>
-      </div>
+      <template v-else>
+        <div class="grid">
+          <button v-for="c in pagedChildren" :key="c.id" class="kid jr-card" @click="openTimeline(c)">
+            <Avatar :name="c.name" size="lg" :photo-url="`/children/${c.id}/photo`" :photo-key="c.photoUpdatedAt || ''"
+                    :warmth="warmth[c.id] === 'SNOOZED' ? '' : (warmth[c.id] || '')" />
+            <span class="kid-name">{{ c.name }}</span>
+            <span v-if="warmth[c.id] === 'SNOOZED'" class="kid-chip snoozed"
+                  :class="{ busy: unsnoozing === c.id }" role="button"
+                  title="탭하면 다시 온도 판정에 포함돼요" @click.stop="unsnooze(c)">접어둠 · 해제</span>
+            <span v-else class="kid-chip">{{ fmtBirth(c.birthDate) }} · {{ c.gender === 'MALE' ? '남' : '여' }}</span>
+          </button>
+        </div>
+        <Pagination :page="page" :total-pages="totalPages" @update:page="(p) => (page = p)" style="margin-top:20px" />
+      </template>
     </div>
   </div>
 

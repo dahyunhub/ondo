@@ -13,6 +13,7 @@ import { AREA_ORDER, AREA_META } from '../lib/areas'
 import AppIcon from '../components/AppIcon.vue'
 import NuriChip from '../components/NuriChip.vue'
 import SproutLoader from '../components/SproutLoader.vue'
+import Pagination from '../components/Pagination.vue'
 
 const { isDesktop } = useViewport()
 const router = useRouter()
@@ -266,11 +267,7 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
             <span class="rc-status" :class="j.status === 'CONFIRMED' ? 'on' : ''">{{ j.status === 'CONFIRMED' ? '확정' : 'AI 초안' }}</span>
             <AppIcon name="chevR" :size="20" />
           </button>
-          <nav v-if="totalPages > 1" class="pager">
-            <button class="pg-arrow" :disabled="page === 1" aria-label="이전" @click="goPage(page - 1)"><AppIcon name="chevL" :size="18" /></button>
-            <button v-for="p in totalPages" :key="p" class="pg-num" :class="{ on: p === page }" @click="goPage(p)">{{ p }}</button>
-            <button class="pg-arrow" :disabled="page === totalPages" aria-label="다음" @click="goPage(page + 1)"><AppIcon name="chevR" :size="18" /></button>
-          </nav>
+          <Pagination :page="page" :total-pages="totalPages" @update:page="goPage" />
         </div>
         <div v-else class="recent-empty">
           <AppIcon name="journal" :size="26" style="color:var(--text-faint)" />
@@ -422,16 +419,6 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
 .rc-ic { width: 42px; height: 42px; border-radius: 12px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: var(--brand-100); color: var(--brand-700); }
 .journal-list { display: flex; flex-direction: column; gap: 10px; max-width: 520px; }
 
-/* 페이지네이션 — 6개 초과 시 노출 */
-.pager { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px; }
-.pg-arrow, .pg-num {
-  min-width: 34px; height: 34px; padding: 0 6px; border-radius: 10px; border: 1.5px solid var(--hair);
-  background: var(--surface); color: var(--text-sub); font-family: inherit; font-size: 14px; font-weight: 700;
-  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: border-color .12s, background .12s, color .12s;
-}
-.pg-arrow:hover:not(:disabled), .pg-num:hover { border-color: var(--brand-500); }
-.pg-arrow:disabled { opacity: .4; cursor: not-allowed; }
-.pg-num.on { background: var(--brand-500); border-color: var(--brand-500); color: var(--text); }
 .journal-list .recent-card { margin: 0; }
 .rc-body { flex: 1; min-width: 0; }
 .rc-t { font-size: 15px; font-weight: 800; }

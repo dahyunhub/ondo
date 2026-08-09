@@ -39,17 +39,6 @@ async function loadMeetSoon(cid) {
   } catch { /* 부가 정보 — 홈은 그대로 뜬다 */ }
 }
 
-// 잠시 접어두기 — 낙관적으로 목록에서 먼저 빼고, 실패하면 되돌린다.
-async function snoozeChild(child) {
-  const before = meetSoon.value
-  meetSoon.value = before.filter((c) => c.id !== child.id)
-  try {
-    await api.post(`/children/${child.id}/warmth-snooze`)
-  } catch {
-    meetSoon.value = before
-  }
-}
-
 onMounted(async () => {
   const cid = session.classroom?.id
   if (!cid) return
@@ -105,7 +94,7 @@ onMounted(async () => {
           <div class="cta-tx"><div class="t">AI 일지 쓰기</div><div class="d">오늘 메모로 하루 일지를 만들어요</div></div>
           <AppIcon name="chevR" :size="24" />
         </div>
-        <MeetSoonCard v-if="meetSoon.length" :children="meetSoon" @snooze="snoozeChild" />
+        <MeetSoonCard v-if="meetSoon.length" :children="meetSoon" />
         <div class="jr-card soon-card">
           <div class="soon-h">AI 분석</div>
           <button class="soon-row act" @click="go('journal')">
@@ -152,7 +141,7 @@ onMounted(async () => {
         <AppIcon name="chevR" :size="22" />
       </button>
 
-      <MeetSoonCard v-if="meetSoon.length" :children="meetSoon" style="margin-top:24px" @snooze="snoozeChild" />
+      <MeetSoonCard v-if="meetSoon.length" :children="meetSoon" style="margin-top:24px" />
 
       <div class="soon-label">지금까지 만든 일지</div>
       <div v-if="journals.length" class="jlist">
