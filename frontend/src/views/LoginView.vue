@@ -23,6 +23,8 @@ const name = ref('')
 const suEmail = ref('')
 const suPassword = ref('')
 const suPassword2 = ref('')
+// 필수 동의 — 아동 개인정보를 다루므로 처리방침·약관 동의 없이는 가입시키지 않는다.
+const agree = ref(false)
 const loading = ref(false)
 const error = ref('')
 
@@ -122,6 +124,10 @@ async function submitSignup() {
   }
   if (suPassword.value !== suPassword2.value) {
     error.value = '비밀번호가 일치하지 않아요.'
+    return
+  }
+  if (!agree.value) {
+    error.value = '개인정보 처리방침과 이용약관에 동의해 주세요.'
     return
   }
   loading.value = true
@@ -240,6 +246,17 @@ async function submitSignup() {
             <input v-model="suPassword2" class="jr-input" type="password" placeholder="비밀번호를 한 번 더 입력해주세요" autocomplete="new-password" />
           </div>
 
+          <!-- 필수 동의 — 링크는 새 탭으로 열어 입력 중인 가입 폼을 잃지 않게 한다. -->
+          <button type="button" class="agree" role="checkbox" :aria-checked="agree" @click="agree = !agree">
+            <span class="keep-box" :class="{ on: agree }">
+              <AppIcon v-if="agree" name="check" :size="12" :stroke="3" />
+            </span>
+            <span class="agree-lab">
+              <RouterLink to="/privacy" target="_blank" @click.stop>개인정보 처리방침</RouterLink>과
+              <RouterLink to="/terms" target="_blank" @click.stop>이용약관</RouterLink>에 동의합니다. <span class="req">(필수)</span>
+            </span>
+          </button>
+
           <p v-if="error" class="err">{{ error }}</p>
 
           <button class="jr-btn jr-btn--primary jr-btn--block jr-btn--lg" type="submit" :disabled="loading">
@@ -262,6 +279,13 @@ async function submitSignup() {
           온도가 처음이신가요?
           <button type="button" @click="router.push({ name: 'intro' })">서비스 소개 보기</button>
         </p>
+
+        <!-- 법적 고지 링크 — 로그인·가입 어느 탭에서도 접근 가능 -->
+        <nav class="legal-links">
+          <RouterLink to="/privacy">개인정보 처리방침</RouterLink>
+          <span class="dot">·</span>
+          <RouterLink to="/terms">이용약관</RouterLink>
+        </nav>
       </div>
     </section>
   </div>
@@ -340,6 +364,15 @@ async function submitSignup() {
 .kakao-btn:disabled { opacity: .6; cursor: default; }
 .kakao-ico { flex: 0 0 auto; }
 
+/* 필수 동의 체크박스 */
+.agree { display: flex; align-items: flex-start; gap: 9px; border: none; background: transparent;
+  font-family: inherit; padding: 2px 0; cursor: pointer; text-align: left; }
+.agree .keep-box { margin-top: 1px; }
+.agree-lab { font-size: 13px; color: var(--text-sub); font-weight: 600; line-height: 1.55; }
+.agree-lab a { color: var(--brand-700); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.agree-lab a:hover { color: #d89f28; }
+.agree-lab .req { color: var(--warn); font-weight: 700; }
+
 /* 소개 페이지 안내 링크 */
 .intro-link { margin: 22px 0 0; text-align: center; font-size: 13.5px; font-weight: 500; color: var(--text-faint); }
 .intro-link button {
@@ -347,4 +380,10 @@ async function submitSignup() {
   color: var(--brand-700); cursor: pointer; padding: 0 2px; text-decoration: underline; text-underline-offset: 3px;
 }
 .intro-link button:hover { color: #d89f28; }
+
+/* 법적 고지 링크(푸터) */
+.legal-links { margin: 18px 0 4px; text-align: center; font-size: 12.5px; color: var(--text-faint); }
+.legal-links a { color: var(--text-faint); font-weight: 600; text-decoration: none; }
+.legal-links a:hover { color: var(--text-sub); text-decoration: underline; text-underline-offset: 3px; }
+.legal-links .dot { margin: 0 8px; color: var(--text-faint); }
 </style>

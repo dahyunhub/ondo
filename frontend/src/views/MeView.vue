@@ -202,6 +202,16 @@ onMounted(() => {})
           <div class="r-tx"><div class="r-label">도움말</div><div class="r-sub">자주 묻는 질문</div></div>
           <AppIcon name="chevR" :size="18" class="r-chev" />
         </button>
+        <button class="row" @click="router.push({ name: 'privacy' })">
+          <AppIcon name="lock" :size="21" class="r-ic" />
+          <div class="r-tx"><div class="r-label">개인정보 처리방침</div></div>
+          <AppIcon name="chevR" :size="18" class="r-chev" />
+        </button>
+        <button class="row" @click="router.push({ name: 'terms' })">
+          <AppIcon name="journal" :size="21" class="r-ic" />
+          <div class="r-tx"><div class="r-label">이용약관</div></div>
+          <AppIcon name="chevR" :size="18" class="r-chev" />
+        </button>
         <button class="row danger" @click="logout">
           <AppIcon name="logout" :size="21" class="r-ic" />
           <div class="r-tx"><div class="r-label">로그아웃</div></div>
