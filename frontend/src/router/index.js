@@ -46,9 +46,10 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   // 로그아웃 상태에서 보호된 화면에 접근하면 로그인으로 보낸다.
-  // 소개 페이지(/intro)는 로그인 화면의 '서비스 소개 보기' 링크나 직접 URL로 접근한다.
+  // 단, 루트(홈)로 처음 들어온 사용자는 소개 페이지(/intro)로 — 홍보 유입의 첫인상은
+  // 로그인 벽이 아니라 서비스 소개여야 한다. 그 외 깊은 링크는 로그인으로.
   if (!to.meta.public && !auth.isAuthenticated) {
-    return { name: 'login' }
+    return { name: to.name === 'home' ? 'intro' : 'login' }
   }
   // 이미 로그인한 사용자는 소개·로그인 화면을 건너뛰고 바로 앱으로.
   if ((to.name === 'login' || to.name === 'intro') && auth.isAuthenticated) {

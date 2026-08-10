@@ -161,8 +161,8 @@ async function submitSignup() {
         <div v-if="!isDesktop" class="m-logo"><Logo variant="vertical" :height="120" /></div>
 
         <template v-if="isDesktop">
-          <div class="jr-h1 head">다시 오셨네요, 반가워요</div>
-          <div class="jr-body head-sub">메모와 기록이 그대로 기다리고 있어요.</div>
+          <div class="jr-h1 head">{{ tab === 'signup' ? '온도에 오신 걸 환영해요' : '다시 오셨네요, 반가워요' }}</div>
+          <div class="jr-body head-sub">{{ tab === 'signup' ? '메모 세 줄이면 AI가 하루 일지를 대신 써요.' : '메모와 기록이 그대로 기다리고 있어요.' }}</div>
         </template>
 
         <!-- 탭 -->

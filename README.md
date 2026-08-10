@@ -7,7 +7,7 @@
 짧은 **메모** 한 줄이면 충분해요.<br>
 아이별로 기록이 쌓이고, **AI**가 누리과정 기반 **하루 일지**와 **개인 관찰평가**를 대신 써 드립니다.
 
-**▶ 라이브 데모 · [ondo-prod.web.app](https://ondo-prod.web.app/intro)** — 가입 없이 **읽기 전용 데모 계정**(`demo@ondo.app` / `ondo-demo`)으로 바로 둘러보세요.
+**▶ 라이브 · [teacherondo.co.kr](https://teacherondo.co.kr)** — 가입 없이 **읽기 전용 데모 계정**(`demo@ondo.app` / `ondo-demo`)으로 바로 둘러보세요.
 
 </div>
 
@@ -56,7 +56,7 @@
 
 ## 📱 실행 화면
 
-> 아래는 모두 **읽기 전용 데모 계정**으로 로그인한 실제 화면이에요 — [라이브에서 바로 둘러보기](https://ondo-prod.web.app/intro) · `demo@ondo.app` / `ondo-demo`
+> 아래는 모두 **읽기 전용 데모 계정**으로 로그인한 실제 화면이에요 — [라이브에서 바로 둘러보기](https://teacherondo.co.kr) · `demo@ondo.app` / `ondo-demo`
 
 **데스크톱 (사이드바 레이아웃)**
 
@@ -141,7 +141,7 @@ cp .env.example .env     # 시크릿 채우기 (.env 는 커밋 금지)
 
 ## ☁️ 배포
 
-**라이브: [ondo-prod.web.app](https://ondo-prod.web.app/intro)** (GCP 서울 리전 `asia-northeast3`)
+**라이브: [teacherondo.co.kr](https://teacherondo.co.kr)** (GCP 서울 리전 `asia-northeast3` · Firebase Hosting 커스텀 도메인)
 
 | 구성 | 서비스 |
 |------|--------|
@@ -274,6 +274,6 @@ erDiagram
 | Epic 2 | 메모 기록 · 타임라인 · 누리과정 영역 분류 · 관찰 온도 | ✅ 완료 |
 | Epic 3 | AI 하루 일지 (비식별화 → 분석 → 검증 · 재분석) | ✅ 완료 |
 | Epic 4 | 개인 관찰평가 (수동 + 월말 자동 스케줄러) | ✅ 완료 |
-| Epic 5 | 실배포 — Cloud Run · Cloud SQL · Firebase Hosting ([라이브](https://ondo-prod.web.app/intro)) | ✅ 완료 |
+| Epic 5 | 실배포 — Cloud Run · Cloud SQL · Firebase Hosting ([라이브](https://teacherondo.co.kr)) | ✅ 완료 |
 
 전체 **200여 개 테스트 통과**(JUnit5 · Testcontainers). AI 일지·개인평가는 실제 OpenAI(`gpt-5.4-nano`)로 end-to-end 검증됨.
