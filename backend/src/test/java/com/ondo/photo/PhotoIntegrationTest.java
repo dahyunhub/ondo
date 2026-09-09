@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -81,6 +83,38 @@ class PhotoIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isNoContent());
         mockMvc.perform(get("/api/v1/children/{id}/photo", childAId).header("Authorization", "Bearer " + tokenA))
                 .andExpect(status().isNotFound());
+    }
+
+    /**
+     * 재검증 경로. 304 로 본문을 아끼는 것뿐 아니라, 이때 사진 바이트를 읽지 않는 것이 핵심이라
+     * 응답 계약(304·ETag·Cache-Control)을 고정해 둔다.
+     */
+    @Test
+    void If_None_Match_가_같으면_304_다르면_바이트를_준다() throws Exception {
+        mockMvc.perform(put("/api/v1/children/{id}/photo", childAId).header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.IMAGE_PNG).content(PNG))
+                .andExpect(status().isOk());
+
+        String etag = mockMvc.perform(get("/api/v1/children/{id}/photo", childAId)
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.ETAG))
+                .andReturn().getResponse().getHeader(HttpHeaders.ETAG);
+
+        mockMvc.perform(get("/api/v1/children/{id}/photo", childAId)
+                        .header("Authorization", "Bearer " + tokenA)
+                        .header(HttpHeaders.IF_NONE_MATCH, etag))
+                .andExpect(status().isNotModified())
+                .andExpect(header().string(HttpHeaders.ETAG, etag))
+                .andExpect(header().exists(HttpHeaders.CACHE_CONTROL))
+                .andExpect(content().bytes(new byte[0]));
+
+        // 오래된 ETag 를 들고 오면 정상적으로 바이트를 받아야 한다.
+        mockMvc.perform(get("/api/v1/children/{id}/photo", childAId)
+                        .header("Authorization", "Bearer " + tokenA)
+                        .header(HttpHeaders.IF_NONE_MATCH, "\"0\""))
+                .andExpect(status().isOk())
+                .andExpect(content().bytes(PNG));
     }
 
     @Test
