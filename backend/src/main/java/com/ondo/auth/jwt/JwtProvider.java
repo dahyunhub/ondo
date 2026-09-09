@@ -50,6 +50,25 @@ public class JwtProvider {
         return Long.valueOf(claims.getSubject());
     }
 
+    /**
+     * teacherId 와 발급시각을 함께 반환. 발급시각은 비밀번호 변경 이후 토큰인지 판정하는 데 쓴다.
+     * iat 가 없는 토큰(이 서버가 발급한 것이 아님)은 가장 오래된 시각으로 취급해, 무효화 기준이
+     * 있으면 거절되도록 한다.
+     *
+     * @throws io.jsonwebtoken.ExpiredJwtException 만료 시
+     * @throws io.jsonwebtoken.JwtException        서명/형식 오류 시
+     */
+    public TokenClaims parse(String token) {
+        Claims claims = parseClaims(token);
+        Date issuedAt = claims.getIssuedAt();
+        return new TokenClaims(Long.valueOf(claims.getSubject()),
+                issuedAt != null ? issuedAt.toInstant() : Instant.EPOCH);
+    }
+
+    /** 토큰에서 꺼내 쓰는 값. issuedAt 은 JWT 규격상 <b>초 단위</b>다. */
+    public record TokenClaims(Long teacherId, Instant issuedAt) {
+    }
+
     public long getExpirationSeconds() {
         return expirationSeconds;
     }

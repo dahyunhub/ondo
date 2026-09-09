@@ -141,10 +141,12 @@ async function savePassword() {
   if (pw.value.next !== pw.value.confirm) { pwErr.value = '새 비밀번호가 서로 달라요.'; return }
   pwBusy.value = true
   try {
-    await api.post('/teachers/me/password', { currentPassword: pw.value.current, newPassword: pw.value.next })
+    const res = await api.post('/teachers/me/password', { currentPassword: pw.value.current, newPassword: pw.value.next })
+    // 서버가 변경 시점에 이전 토큰을 무효화한다 — 새 토큰으로 갈아끼우지 않으면 다음 요청에서 로그아웃된다.
+    if (res?.accessToken) auth.replaceToken(res.accessToken)
     pwOpen.value = false
     pw.value = { current: '', next: '', confirm: '' }
-    showToast('비밀번호를 변경했어요')
+    showToast('비밀번호를 변경했어요. 다른 기기는 다시 로그인해 주세요')
   } catch (e) {
     pwErr.value = e instanceof ApiError ? e.message : '변경 중 문제가 발생했어요.'
   } finally { pwBusy.value = false }

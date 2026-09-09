@@ -42,7 +42,8 @@ public class SecurityConfig {
                                 "/actuator/health").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
-                .addFilterBefore(new JwtAuthFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthFilter(jwtProvider, teacherRepository),
+                        UsernamePasswordAuthenticationFilter.class)
                 // JwtAuthFilter 뒤 — principal 이 채워진 다음 데모 계정의 변경 요청을 차단한다.
                 .addFilterAfter(new DemoReadOnlyFilter(teacherRepository, demoProperties),
                         JwtAuthFilter.class);

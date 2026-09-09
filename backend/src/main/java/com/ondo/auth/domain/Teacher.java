@@ -11,6 +11,9 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+
 /**
  * 교사 계정(FR-10, NFR-6).
  * <p>
@@ -41,6 +44,13 @@ public class Teacher extends BaseTimeEntity {
     /** 소셜 전용 계정은 NULL. 비었으면 비밀번호 로그인 불가. */
     @Column(name = "password_hash")
     private String passwordHash;
+
+    /**
+     * 마지막 비밀번호 변경 시각(UTC). 이 시각보다 먼저 발급된 JWT 는 거절된다(JwtAuthFilter).
+     * 비밀번호를 한 번도 바꾸지 않았으면 NULL = 무효화 기준 없음.
+     */
+    @Column(name = "password_changed_at")
+    private LocalDateTime passwordChangedAt;
 
     @Column
     private String name;
@@ -82,10 +92,15 @@ public class Teacher extends BaseTimeEntity {
     }
 
     /**
+     * 비밀번호 교체. 변경 시각을 함께 남겨 <b>이전에 발급된 JWT 를 전부 무효화</b>한다.
+     * 비밀번호 변경(로그인 상태)과 재설정(메일 링크) 두 경로가 모두 이 메서드를 지나므로
+     * 무효화도 두 경로에 함께 적용된다.
+     *
      * @param passwordHash 반드시 BCrypt 등으로 해시된 값(평문 금지)
      */
     public void changePassword(String passwordHash) {
         this.passwordHash = passwordHash;
+        this.passwordChangedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     /** 소셜 로그인 사용 가능 여부(비밀번호 로그인만 가능한 계정이면 false). */

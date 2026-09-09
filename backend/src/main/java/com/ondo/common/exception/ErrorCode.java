@@ -12,6 +12,7 @@ public enum ErrorCode {
     AUTH_INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않아요."),
     AUTH_UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "로그인이 필요해요."),
     AUTH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "로그인이 만료됐어요. 다시 로그인해 주세요."),
+    AUTH_TOKEN_REVOKED(HttpStatus.UNAUTHORIZED, "비밀번호가 변경되어 다시 로그인이 필요해요."),
     AUTH_FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없어요."),
     DEMO_READ_ONLY(HttpStatus.FORBIDDEN, "읽기 전용 데모 계정이에요 — 둘러보기만 할 수 있어요."),
     AUTH_KAKAO_FAILED(HttpStatus.UNAUTHORIZED, "카카오 로그인에 실패했어요. 다시 시도해 주세요."),

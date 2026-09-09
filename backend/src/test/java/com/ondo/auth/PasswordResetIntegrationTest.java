@@ -191,6 +191,23 @@ class PasswordResetIntegrationTest extends IntegrationTestSupport {
         login(RAW_PASSWORD, 401);
     }
 
+    /**
+     * 재설정도 비밀번호 변경 시각을 남겨야 한다 — 계정을 도난당한 사람이 실제로 쓰는 복구 경로가
+     * 이쪽이라, 여기서 기록이 빠지면 공격자의 기존 토큰이 그대로 살아남는다.
+     * (그 시각보다 먼저 발급된 토큰이 실제로 거절되는지는 TeacherProfileIntegrationTest 가 검증한다.)
+     */
+    @Test
+    void 재설정하면_비밀번호_변경시각이_기록된다() throws Exception {
+        String token = plantToken("revoke-token-1", LocalDateTime.now(ZoneOffset.UTC).plusMinutes(10), null);
+        assertThat(teacherRepository.findById(teacherId).orElseThrow().getPasswordChangedAt()).isNull();
+
+        confirm(token, "newpassword1234", 204);
+
+        em.flush();
+        em.clear();
+        assertThat(teacherRepository.findById(teacherId).orElseThrow().getPasswordChangedAt()).isNotNull();
+    }
+
     @Test
     void 이미_사용한_토큰은_거부된다() throws Exception {
         String token = plantToken("used-token-1", LocalDateTime.now(ZoneOffset.UTC).plusMinutes(10), null);

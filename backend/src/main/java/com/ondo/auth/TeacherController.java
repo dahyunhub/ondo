@@ -1,10 +1,10 @@
 package com.ondo.auth;
 
 import com.ondo.auth.dto.ChangePasswordRequest;
+import com.ondo.auth.dto.PasswordChangedResponse;
 import com.ondo.auth.dto.TeacherMeResponse;
 import com.ondo.auth.dto.UpdateMyProfileRequest;
 import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,10 +31,10 @@ public class TeacherController {
         return teacherService.updateName(teacherId, request.name());
     }
 
+    /** 성공 시 새 accessToken 을 돌려준다 — 변경과 동시에 이전 토큰이 무효화되기 때문이다. */
     @PostMapping("/password")
-    public ResponseEntity<Void> changeMyPassword(@AuthenticationPrincipal Long teacherId,
-                                                 @Valid @RequestBody ChangePasswordRequest request) {
-        teacherService.changePassword(teacherId, request.currentPassword(), request.newPassword());
-        return ResponseEntity.noContent().build();
+    public PasswordChangedResponse changeMyPassword(@AuthenticationPrincipal Long teacherId,
+                                                    @Valid @RequestBody ChangePasswordRequest request) {
+        return teacherService.changePassword(teacherId, request.currentPassword(), request.newPassword());
     }
 }

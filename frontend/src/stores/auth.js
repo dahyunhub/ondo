@@ -42,6 +42,15 @@ export const auth = reactive({
     other.removeItem(TEACHER_KEY)
   },
 
+  // 비밀번호를 바꾸면 서버가 이전 토큰을 전부 무효화하고 새 토큰을 내려준다.
+  // 지금 기기가 곧바로 로그아웃되지 않도록 토큰만 갈아끼운다(교사 정보·반 선택은 유지).
+  replaceToken(accessToken) {
+    this.token = accessToken
+    // 현재 토큰이 들어있는 저장소를 그대로 따라간다('로그인 상태 유지' 설정을 뒤집지 않도록).
+    const store = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage
+    store.setItem(TOKEN_KEY, accessToken)
+  },
+
   // 교사 정보 부분 갱신(프로필 사진 등) — 세션(반 선택)은 건드리지 않는다.
   updateTeacher(patch) {
     this.teacher = { ...(this.teacher || {}), ...patch }
