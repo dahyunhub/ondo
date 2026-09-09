@@ -34,7 +34,8 @@
 - **개인 관찰평가** — 아이별 기록을 모아 상담·발달평가용 평가서를 작성(교사 수동 생성. 월말 자동 스케줄러는 env로 켜는 opt-in).
 - **반·아이 관리** — 담당 반 선택·추가, 아이 등록·수정·숨김/복원, 프로필 사진(브라우저 1:1 크롭).
 - **로그인** — 이메일 회원가입 · **카카오 로그인** · 비밀번호 재설정(이메일 링크) · 로그인 상태 유지.
-- **어디서나** — 데스크톱·모바일 반응형. 교실에선 폰으로 기록하고, 정리는 PC로.
+- **어디서나** — 데스크톱·모바일 반응형 + **홈 화면 설치(PWA)**. 교실에선 폰으로 기록하고, 정리는 PC로.
+- **도움말·피드백** — 자주 묻는 질문 페이지(`/help`)와, 화면 어디서든 열리는 **인앱 피드백** 창구(기록 + 메일 알림).
 
 > 🔒 AI에 보낼 때 아이 실명은 **비식별화**되고 분석 후 복원됩니다. 원본 기록은 그대로 안전하게 보존돼요.
 
@@ -76,12 +77,13 @@
 |------|------|
 | 백엔드 | Java 25 · Spring Boot 4 · Gradle · Spring Data JPA · Flyway |
 | DB | MySQL 8.4 |
-| 인증 | Spring Security(stateless) · JWT · BCrypt · **카카오 OAuth** |
+| 인증 | Spring Security(stateless) · JWT · BCrypt · **카카오 OAuth** · 비밀번호 재설정(SMTP 메일) |
 | AI | OpenAI Chat Completions · structured outputs(strict) · 기본 모델 `gpt-5.4-nano` |
-| 프론트 | Vue 3(Composition API) · Vite · 반응형(사이드바 ↔ 하단탭) |
+| 프론트 | Vue 3(Composition API) · Vue Router · Vite · 반응형(사이드바 ↔ 하단탭) · PWA(홈 화면 설치) |
 | 인프라 | Docker · docker-compose · nginx(정적 서빙·gzip) |
 | 배포 | GCP Cloud Run(API) · Cloud SQL for MySQL · Firebase Hosting(프론트·`/api` 리라이트) |
-| 테스트 | JUnit 5 · Testcontainers(MySQL) |
+| 관측·지표 | Sentry(5xx 에러 · 기본 비활성, DSN 주입 시 활성) · 인앱 피드백 · 리텐션 SQL([`analytics/`](analytics/retention.sql)) |
+| 테스트·측정 | JUnit 5 · Testcontainers(MySQL) · 성능 벤치 하네스([`bench/`](bench/)) |
 
 ## 🚀 빠르게 실행
 
@@ -152,11 +154,27 @@ cp .env.example .env     # 시크릿 채우기 (.env 는 커밋 금지)
 
 같은 컨테이너 이미지를 로컬(docker-compose)·클라우드(Cloud Run)에서 그대로 돌립니다. 실배포 절차는 런북 참고 — [GCP Cloud Run](docs/deploy-gcp-cloudrun-runbook.md) · [AWS(RDS+caddy)](docs/deploy-aws-runbook.md).
 
+## 🛡️ 실사용자를 받기 위해 붙인 것들
+
+배포로 끝나지 않아서, 실제 선생님이 쓰기 시작해도 버틸 수 있게 붙인 장치들입니다. **새 인프라는 거의 늘리지 않는 방향**으로 골랐어요.
+
+| | 무엇 | 어떻게 |
+|---|---|---|
+| **법적 고지** | 개인정보 처리방침 · 이용약관 | `/privacy` · `/terms` (로그인 전 접근 가능) + 가입 시 **필수 동의** |
+| **에러 모니터링** | Sentry | 5xx만 수동 캡처(PII 미전송). `SENTRY_DSN` 이 비면 **완전 무동작** — dev·테스트에 영향 없음 |
+| **사용자 의견** | 인앱 피드백 | 화면 어디서나 열리는 위젯 → `feedback` 테이블 적재 + `FEEDBACK_TO` 로 메일 알림(데모 계정은 예외 허용) |
+| **지표** | 리텐션·활성화 | 새 로그 인프라 없이 **기존 스키마에 SQL만** — [`analytics/retention.sql`](analytics/retention.sql) (데모 계정 제외, KST 기준) |
+| **설치** | PWA | `manifest.webmanifest` + 아이콘 — 교사가 폰 홈 화면에 바로 얹어 쓸 수 있게 |
+| **첫인상** | 소개 페이지 | 로그아웃 상태로 루트에 들어오면 로그인 벽 대신 `/intro` 로 |
+| **성능** | 벤치 하네스 | 1학기치(메모 3,000여 건·사진 5.7MB) 시드 후 before/after 측정 — [`bench/`](bench/) |
+
 ## 📚 더 알아보기
 
 - **기획 산출물** — [`docs/portfolio/`](docs/portfolio/) : 사용자 인터뷰 · As-Is/To-Be · User Flow & IA · 지표 설계
 - **구현 명세** — [`docs/specs/`](docs/specs/) : API · 데이터 모델 · 에러 코드 · AI 연동
 - **배포 런북** — [`docs/deploy-gcp-cloudrun-runbook.md`](docs/deploy-gcp-cloudrun-runbook.md) · [`docs/deploy-aws-runbook.md`](docs/deploy-aws-runbook.md)
+- **지표 쿼리** — [`analytics/retention.sql`](analytics/retention.sql) : 가입→활성화 · N일 리텐션 · 주간 활성 교사
+- **성능 측정** — [`bench/`](bench/) : 1학기치 시드 + before/after 비교 하네스(`bench/README.md`)
 
 <details>
 <summary>저장소 구조</summary>
@@ -173,10 +191,15 @@ ondo/
 │       ├── journal/    # AI 하루 일지(생성·검토·확정·재분석)
 │       ├── report/     # 개인 관찰평가(수동 생성 + 월말 자동 스케줄러 · 기본 비활성, env로 opt-in)
 │       ├── photo/      # 프로필 이미지(아이·교사)
+│       ├── feedback/   # 인앱 피드백 수집(DB 적재 + 메일 알림)
 │       ├── ai/         # AiClient 추상화 · 비식별화 · 프롬프트/검증
-│       └── common/     # 공통 에러·시간(KST)·동시성 가드
-├── frontend/    # Vue 3 + Vite SPA (데스크톱/모바일 반응형)
-└── docs/        # 기획 산출물 · 구현 명세
+│       ├── mail/       # 메일 발송 추상화(SMTP · 미설정 시 로깅 폴백)
+│       ├── config/     # Security · Ai · Kakao · Mail · Sentry · Demo · Scheduling
+│       └── common/     # 공통 에러·응답·시간(KST)·동시성 가드
+├── frontend/    # Vue 3 + Vite SPA (데스크톱/모바일 반응형 · PWA)
+├── analytics/   # 리텐션·활성화 지표 SQL
+├── bench/       # 성능 측정 시드 + before/after 하네스
+└── docs/        # 기획 산출물 · 구현 명세 · 배포 런북
 ```
 
 </details>
@@ -197,6 +220,7 @@ erDiagram
     child ||--o{ child_report : "개인평가"
     daily_journal ||--o{ journal_memo_link : "근거"
     memo ||--o{ journal_memo_link : "인용"
+    teacher ||--o{ feedback : "의견"
 
     teacher {
         bigint id PK
@@ -261,6 +285,14 @@ erDiagram
         varchar content_type
         longblob data
     }
+    feedback {
+        bigint id PK
+        bigint teacher_id FK "익명 여지로 nullable"
+        varchar category "버그 / 제안 / 기타"
+        varchar message
+        varchar page "보낸 화면(라우트명)"
+        varchar user_agent
+    }
 ```
 
 </details>
@@ -275,5 +307,6 @@ erDiagram
 | Epic 3 | AI 하루 일지 (비식별화 → 분석 → 검증 · 재분석) | ✅ 완료 |
 | Epic 4 | 개인 관찰평가 (수동 생성 + 월말 자동 스케줄러 · env로 opt-in) | ✅ 완료 |
 | Epic 5 | 실배포 — Cloud Run · Cloud SQL · Firebase Hosting ([라이브](https://teacherondo.co.kr)) | ✅ 완료 |
+| 운영 준비 | 처리방침·약관·가입 동의 · Sentry · 인앱 피드백 · 리텐션 SQL · PWA · 소개/도움말 페이지 | ✅ 완료 |
 
-전체 **200여 개 테스트 통과**(JUnit5 · Testcontainers). AI 일지·개인평가는 실제 OpenAI(`gpt-5.4-nano`)로 end-to-end 검증됨.
+전체 **208개 테스트 통과**(JUnit 5 · Testcontainers — 통합테스트 15개 클래스 + 단위테스트 10개). AI 일지·개인평가는 실제 OpenAI(`gpt-5.4-nano`)로 end-to-end 검증됐고, 비밀번호 재설정 메일·카카오 로그인·읽기 전용 데모도 라이브에서 동작 확인됨.

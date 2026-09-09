@@ -147,7 +147,7 @@ gcloud run deploy ondo-api \
   --memory 1Gi --cpu 1 \
   --min-instances 0 \
   --add-cloudsql-instances '<CONN>' \
-  --set-env-vars '^@^SPRING_PROFILES_ACTIVE=prod@AI_MODEL=gpt-5.4-mini@DB_USERNAME=ondo@DB_URL=jdbc:mysql:///ondo?cloudSqlInstance=<CONN>&socketFactory=com.google.cloud.sql.mysql.SocketFactory&serverTimezone=UTC&characterEncoding=UTF-8@APP_BASE_URL=https://<도메인>@KAKAO_CLIENT_ID=<카카오-REST키>' \
+  --set-env-vars '^@^SPRING_PROFILES_ACTIVE=prod@AI_MODEL=gpt-5.4-nano@DB_USERNAME=ondo@DB_URL=jdbc:mysql:///ondo?cloudSqlInstance=<CONN>&socketFactory=com.google.cloud.sql.mysql.SocketFactory&serverTimezone=UTC&characterEncoding=UTF-8@APP_BASE_URL=https://<도메인>@KAKAO_CLIENT_ID=<카카오-REST키>' \
   --set-secrets 'JWT_SECRET=jwt-secret:latest,DB_PASSWORD=db-password:latest,KAKAO_CLIENT_SECRET=kakao-secret:latest,AI_API_KEY=ai-key:latest' \
   --allow-unauthenticated
 ```

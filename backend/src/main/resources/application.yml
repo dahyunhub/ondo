@@ -52,7 +52,7 @@ ondo:
     # 외부 LLM(OpenAI). 키·모델은 운영 시 env 주입. base-url 은 호스트만(경로는 코드에서 /v1/chat/completions).
     base-url: ${AI_BASE_URL:https://api.openai.com}
     api-key: ${AI_API_KEY:}
-    model: ${AI_MODEL:gpt-5.4-mini}
+    model: ${AI_MODEL:gpt-5.4-nano}
     timeout-seconds: ${AI_TIMEOUT_SECONDS:20}
     max-retries: ${AI_MAX_RETRIES:2}
   kakao:
