@@ -212,8 +212,9 @@ dev 시드는 메모 8건이라 어떤 개선도 "0ms → 0ms"로 측정됩니�
 - 가장 어려운 결함은 전부 **"두 시점 사이의 상태 변화"**였습니다 — 락 오해제, 분석 중 메모 삭제, `analyzedAt` 스냅샷, KST/UTC 갭. 대응은 결정적 테스트(래치 기반 경합, ±10초 시드로 wall-clock 비의존).
 - 입력 검증·경계는 매번 리뷰가 잡아줬습니다. 안전망은 작동했지만 같은 그물에 반복해 걸린 건 개선 신호로 남겼습니다.
 
-> 위 내용은 저장소에 커밋하지 않는 작업 문서(리뷰·트러블슈팅 로그 · 미해결/이연 목록 · 에픽 회고)에서 추린 것입니다.
-> 미룬 일은 "지금 안 함 / 어느 스토리에서 함"을 출처(파일:라인)까지 적어 두는 것을 규칙으로 삼았고, 실제로 그렇게 미룬 항목들이 나중 스토리에서 해결됐습니다.
+전체 기록은 [트러블슈팅 로그](docs/troubleshooting-log.md)에 누적하고 있습니다 — 설계 리뷰에서 나온 지적, 라이브에서 터진 결함, 성능 개선을 증상·원인·수정·검증 순으로 남깁니다.
+
+미해결/이연 목록과 에픽 회고는 저장소에 커밋하지 않는 작업 문서로 두되, 미룬 일은 **"지금 안 함 / 어느 스토리에서 함"을 출처(파일:라인)까지** 적는 것을 규칙으로 삼았습니다. 실제로 그렇게 미룬 항목들이 나중 스토리에서 해결됐어요.
 
 </details>
 
@@ -222,6 +223,7 @@ dev 시드는 메모 8건이라 어떤 개선도 "0ms → 0ms"로 측정됩니�
 - **기획 산출물** — [`docs/portfolio/`](docs/portfolio/) : 사용자 인터뷰 · As-Is/To-Be · User Flow & IA · 지표 설계
 - **구현 명세** — [`docs/specs/`](docs/specs/) : API · 데이터 모델 · 에러 코드 · AI 연동
 - **배포 런북** — [`docs/deploy-gcp-cloudrun-runbook.md`](docs/deploy-gcp-cloudrun-runbook.md) · [`docs/deploy-aws-runbook.md`](docs/deploy-aws-runbook.md)
+- **트러블슈팅 로그** — [`docs/troubleshooting-log.md`](docs/troubleshooting-log.md) : 설계 리뷰 지적 · 라이브 결함 · 성능 개선의 누적 기록
 - **지표 쿼리** — [`analytics/retention.sql`](analytics/retention.sql) : 가입→활성화 · N일 리텐션 · 주간 활성 교사
 - **성능 측정** — [`bench/`](bench/) : 1학기치 시드 + before/after 비교 하네스(`bench/README.md`)
 
