@@ -63,6 +63,7 @@ related:
 | `AUTH_UNAUTHENTICATED` | 401 | 로그인이 필요해요. | JWT 누락/무효 |
 | `AUTH_TOKEN_EXPIRED` | 401 | 로그인이 만료됐어요. 다시 로그인해 주세요. | JWT 만료(리프레시 없음) |
 | `AUTH_TOKEN_REVOKED` | 401 | 비밀번호가 변경되어 다시 로그인이 필요해요. | 비밀번호 변경·재설정 시각보다 먼저 발급된 JWT |
+| `TOO_MANY_ATTEMPTS` | 429 | 시도가 너무 많아요. 잠시 후 다시 시도해 주세요. | 로그인·현재 비밀번호 확인의 시도 제한(브루트포스 가드). 재설정 메일 요청은 계정 열거 방지를 위해 이 코드를 쓰지 않고 발송만 조용히 멈춘다 |
 | `AUTH_FORBIDDEN` | 403 | 접근 권한이 없어요. | 명백한 소유권 위반 |
 
 ### 3.2 검증 (VALIDATION)
@@ -122,6 +123,7 @@ public enum ErrorCode {
     AUTH_UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "로그인이 필요해요."),
     AUTH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "로그인이 만료됐어요. 다시 로그인해 주세요."),
     AUTH_TOKEN_REVOKED(HttpStatus.UNAUTHORIZED, "비밀번호가 변경되어 다시 로그인이 필요해요."),
+    TOO_MANY_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "시도가 너무 많아요. 잠시 후 다시 시도해 주세요."),
     AUTH_FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없어요."),
 
     // VALIDATION

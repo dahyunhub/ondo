@@ -2,6 +2,8 @@ package com.ondo.auth.reset;
 
 import com.ondo.auth.TeacherRepository;
 import com.ondo.auth.domain.Teacher;
+import com.ondo.auth.throttle.AuthAttemptScope;
+import com.ondo.auth.throttle.AuthThrottleService;
 import com.ondo.common.exception.BusinessException;
 import com.ondo.common.exception.ErrorCode;
 import com.ondo.mail.MailProperties;
@@ -44,17 +46,20 @@ public class PasswordResetService {
     private final PasswordEncoder passwordEncoder;
     private final MailSender mailSender;
     private final MailProperties mailProperties;
+    private final AuthThrottleService throttleService;
 
     public PasswordResetService(TeacherRepository teacherRepository,
                                 PasswordResetTokenRepository tokenRepository,
                                 PasswordEncoder passwordEncoder,
                                 MailSender mailSender,
-                                MailProperties mailProperties) {
+                                MailProperties mailProperties,
+                                AuthThrottleService throttleService) {
         this.teacherRepository = teacherRepository;
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.mailSender = mailSender;
         this.mailProperties = mailProperties;
+        this.throttleService = throttleService;
     }
 
     /**
@@ -71,6 +76,16 @@ public class PasswordResetService {
             return; // 미가입 — 흔적을 남기지 않는다
         }
         Teacher teacher = found.get();
+
+        // 메일 발송 횟수 제한 — 특정 교사의 메일함을 폭탄으로 채우거나 SMTP 할당량을 태우는 것을 막는다.
+        // 제한에 걸려도 응답은 지금과 똑같이 둔다. 여기서 429 를 주면 그 자체가 "가입된 이메일"이라는
+        // 신호가 되어, 이 API 가 지키려던 계정 열거 방지가 무너진다.
+        String throttleKey = AuthThrottleService.key(email);
+        if (throttleService.isLocked(AuthAttemptScope.RESET_REQUEST, throttleKey)) {
+            log.info("재설정 메일 요청 제한으로 발송 생략: teacherId={}", teacher.getId());
+            return;
+        }
+        throttleService.record(AuthAttemptScope.RESET_REQUEST, throttleKey);
 
         if (teacher.getPasswordHash() == null) {
             // 카카오 전용 계정: 바꿀 비밀번호가 없다. 토큰 없이 안내 메일만.

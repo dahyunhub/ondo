@@ -4,6 +4,8 @@ import com.ondo.auth.domain.Teacher;
 import com.ondo.auth.dto.PasswordChangedResponse;
 import com.ondo.auth.dto.TeacherMeResponse;
 import com.ondo.auth.jwt.JwtProvider;
+import com.ondo.auth.throttle.AuthAttemptScope;
+import com.ondo.auth.throttle.AuthThrottleService;
 import com.ondo.common.exception.BusinessException;
 import com.ondo.common.exception.ErrorCode;
 import com.ondo.photo.ProfilePhotoService;
@@ -23,13 +25,16 @@ public class TeacherService {
     private final PasswordEncoder passwordEncoder;
     private final ProfilePhotoService photoService;
     private final JwtProvider jwtProvider;
+    private final AuthThrottleService throttleService;
 
     public TeacherService(TeacherRepository teacherRepository, PasswordEncoder passwordEncoder,
-                          ProfilePhotoService photoService, JwtProvider jwtProvider) {
+                          ProfilePhotoService photoService, JwtProvider jwtProvider,
+                          AuthThrottleService throttleService) {
         this.teacherRepository = teacherRepository;
         this.passwordEncoder = passwordEncoder;
         this.photoService = photoService;
         this.jwtProvider = jwtProvider;
+        this.throttleService = throttleService;
     }
 
     @Transactional
@@ -48,14 +53,21 @@ public class TeacherService {
      */
     @Transactional
     public PasswordChangedResponse changePassword(Long teacherId, String currentPassword, String newPassword) {
+        // 이 엔드포인트는 현재 비밀번호의 일치 여부를 그대로 알려주므로, 유효 토큰을 손에 넣은
+        // 공격자에게는 비밀번호를 맞혀 보는 오라클이 된다. 그래서 로그인보다 빡빡하게 센다.
+        String throttleKey = String.valueOf(teacherId);
+        throttleService.assertNotLocked(AuthAttemptScope.PASSWORD_CONFIRM, throttleKey);
+
         Teacher teacher = findTeacher(teacherId);
         // 소셜 전용 계정(password_hash NULL)은 비밀번호가 없어 변경 대상이 아니다(matches() 전 가드).
         if (!teacher.hasPassword()) {
             throw new BusinessException(ErrorCode.SOCIAL_ACCOUNT_NO_PASSWORD);
         }
         if (!passwordEncoder.matches(currentPassword, teacher.getPasswordHash())) {
+            throttleService.record(AuthAttemptScope.PASSWORD_CONFIRM, throttleKey);
             throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS);
         }
+        throttleService.clear(AuthAttemptScope.PASSWORD_CONFIRM, throttleKey);
         teacher.changePassword(passwordEncoder.encode(newPassword));
         return new PasswordChangedResponse(
                 jwtProvider.createToken(teacher.getId(), teacher.getEmail()),

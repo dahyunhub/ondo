@@ -82,6 +82,27 @@ ondo:
     environment: ${SENTRY_ENVIRONMENT:}
     release: ${SENTRY_RELEASE:}
     traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.0}
+  throttle:
+    # 브루트포스 가드(시도 제한). 카운터는 DB(auth_attempt)에 둔다 — Cloud Run 은 인스턴스가
+    # 늘거나 잠들어서 메모리 카운터로는 보증이 되지 않는다. 값은 운영에서 env 로 조절 가능.
+    login:
+      # 정상 사용자가 오타로 몇 번 틀리는 것을 감안해 여유를 둔다.
+      max-attempts: ${THROTTLE_LOGIN_MAX:10}
+      window: ${THROTTLE_LOGIN_WINDOW:15m}
+      lock-for: ${THROTTLE_LOGIN_LOCK:15m}
+    password-confirm:
+      # 이미 유효 토큰을 쥔 공격자가 두드리는 곳이라 더 빡빡하게.
+      max-attempts: ${THROTTLE_PWD_MAX:5}
+      window: ${THROTTLE_PWD_WINDOW:15m}
+      lock-for: ${THROTTLE_PWD_LOCK:15m}
+    reset-request:
+      # 메일함 폭탄·SMTP 할당량 소진 방지. 제한에 걸리면 응답은 그대로 두고 발송만 멈춘다.
+      max-attempts: ${THROTTLE_RESET_MAX:5}
+      window: ${THROTTLE_RESET_WINDOW:1h}
+      lock-for: ${THROTTLE_RESET_LOCK:1h}
+    # 만료된 카운터 정리(KST). min-instances=0 이라 인스턴스가 자면 그날 건너뛸 수 있는 best-effort.
+    cleanup-cron: ${THROTTLE_CLEANUP_CRON:0 30 4 * * *}
+
   feedback:
     # 인앱 피드백 알림 수신 주소. 비우면 DB(feedback 테이블)에만 적재하고 메일은 보내지 않는다.
     to: ${FEEDBACK_TO:}

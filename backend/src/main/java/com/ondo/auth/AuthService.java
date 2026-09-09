@@ -8,6 +8,8 @@ import com.ondo.auth.dto.RegisterRequest;
 import com.ondo.auth.jwt.JwtProvider;
 import com.ondo.auth.kakao.KakaoOAuthClient;
 import com.ondo.auth.kakao.KakaoOAuthClient.KakaoUser;
+import com.ondo.auth.throttle.AuthAttemptScope;
+import com.ondo.auth.throttle.AuthThrottleService;
 import com.ondo.common.exception.BusinessException;
 import com.ondo.common.exception.ErrorCode;
 import com.ondo.photo.ProfilePhotoService;
@@ -15,6 +17,8 @@ import com.ondo.photo.domain.OwnerKind;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @Service
 @Transactional(readOnly = true)
@@ -25,27 +29,35 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final ProfilePhotoService photoService;
     private final KakaoOAuthClient kakaoClient;
+    private final AuthThrottleService throttleService;
 
     public AuthService(TeacherRepository teacherRepository, PasswordEncoder passwordEncoder, JwtProvider jwtProvider,
-                       ProfilePhotoService photoService, KakaoOAuthClient kakaoClient) {
+                       ProfilePhotoService photoService, KakaoOAuthClient kakaoClient,
+                       AuthThrottleService throttleService) {
         this.teacherRepository = teacherRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtProvider = jwtProvider;
         this.photoService = photoService;
         this.kakaoClient = kakaoClient;
+        this.throttleService = throttleService;
     }
 
     public LoginResponse login(LoginRequest request) {
-        Teacher teacher = teacherRepository.findByEmail(request.email())
-                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS));
+        // 시도 제한은 계정 조회보다 먼저다. 존재하지 않는 이메일도 똑같이 세고 똑같이 429 를 주므로
+        // 429 응답이 "그 계정이 있다"는 신호가 되지 않는다(계정 열거 방지 유지).
+        String throttleKey = AuthThrottleService.key(request.email());
+        throttleService.assertNotLocked(AuthAttemptScope.LOGIN, throttleKey);
 
+        Optional<Teacher> found = teacherRepository.findByEmail(request.email());
         // 소셜 전용 계정(password_hash NULL)은 비번 로그인 불가 — matches() 전 null 가드(NPE 금지).
-        if (!teacher.hasPassword()
-                || !passwordEncoder.matches(request.password(), teacher.getPasswordHash())) {
+        if (found.isEmpty() || !found.get().hasPassword()
+                || !passwordEncoder.matches(request.password(), found.get().getPasswordHash())) {
+            throttleService.record(AuthAttemptScope.LOGIN, throttleKey);
             throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS);
         }
 
-        return issueToken(teacher);
+        throttleService.clear(AuthAttemptScope.LOGIN, throttleKey);
+        return issueToken(found.get());
     }
 
     /**
