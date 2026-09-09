@@ -2,6 +2,7 @@ package com.ondo.photo;
 
 import com.ondo.common.exception.BusinessException;
 import com.ondo.common.exception.ErrorCode;
+import com.ondo.photo.ProfilePhotoRepository.OwnerUpdatedAt;
 import com.ondo.photo.domain.OwnerKind;
 import com.ondo.photo.domain.ProfilePhoto;
 import org.springframework.stereotype.Service;
@@ -62,20 +63,18 @@ public class ProfilePhotoService {
         repository.deleteByOwnerKindAndOwnerId(ownerKind, ownerId);
     }
 
-    /** 단건 갱신시각(없으면 null) — 응답 photoUpdatedAt 채움용. */
+    /** 단건 갱신시각(없으면 null) — 응답 photoUpdatedAt 채움용. 사진 바이트는 읽지 않는다. */
     public LocalDateTime updatedAtOrNull(OwnerKind ownerKind, Long ownerId) {
-        return repository.findByOwnerKindAndOwnerId(ownerKind, ownerId)
-                .map(ProfilePhoto::getUpdatedAt)
-                .orElse(null);
+        return repository.findUpdatedAt(ownerKind, ownerId).orElse(null);
     }
 
-    /** 목록용 — ownerId → 갱신시각 맵(사진 없는 id 는 키 없음). */
+    /** 목록용 — ownerId → 갱신시각 맵(사진 없는 id 는 키 없음). 사진 바이트는 읽지 않는다. */
     public Map<Long, LocalDateTime> updatedAtByOwnerId(OwnerKind ownerKind, List<Long> ownerIds) {
         if (ownerIds.isEmpty()) {
             return Map.of();
         }
-        return repository.findByOwnerKindAndOwnerIdIn(ownerKind, ownerIds).stream()
-                .collect(Collectors.toMap(ProfilePhoto::getOwnerId, ProfilePhoto::getUpdatedAt));
+        return repository.findUpdatedAtByOwnerIds(ownerKind, ownerIds).stream()
+                .collect(Collectors.toMap(OwnerUpdatedAt::getOwnerId, OwnerUpdatedAt::getUpdatedAt));
     }
 
     private static String normalizeType(String contentType) {
