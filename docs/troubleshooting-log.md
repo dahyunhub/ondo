@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-09-13 · 타임라인이 매번 정렬을 다시 하던 문제 — (child_id, created_at) 복합 인덱스
+
+**맥락:** `deferred-work.md` 의 **Low** 항목(2026-07-29, 관찰 온도 코드 리뷰). 메모를 읽는 쿼리는 전부 `child_id` 로 거른 뒤 `created_at` 으로 정렬(타임라인)하거나 범위를 잡는데(관찰 온도·일지 묶음·개인평가 묶음), 인덱스는 `child_id` 와 `created_at` 에 **각각 단일**뿐이었다. 2026-09-09 벤치가 타임라인 플랜에 `Using filesort` 를 찍어 둔 것이 그 증거였다.
+
+### 수정
+
+V11 로 `idx_memo_child_created(child_id, created_at)` 추가. `child_id` 로 좁힌 안에서 `created_at` 순으로 이미 정렬돼 있어 정렬 단계가 필요 없고, 범위 쿼리는 아이별로 해당 기간만 읽는다.
+
+- 접두가 겹치는 `idx_memo_child` 는 **제거**했다. 완전 중복이라 쓰기마다 유지 비용만 든다.
+- `fk_memo_child` 가 `child_id` 인덱스를 요구하므로 **복합을 먼저 만들고 나서 지운다.** 순서를 바꾸면 FK 제약 때문에 `DROP` 이 거부된다.
+- `idx_memo_created_at` 은 둔다 — `child_id` 없이 기간만 보는 조회의 여지.
+
+### 측정 (bench, 반 1 · 아이 23명 · 메모 3,236건)
+
+| 항목 | before | after |
+|---|---|---|
+| `plan.timeline.key` | `idx_memo_child` | **`idx_memo_child_created`** |
+| `plan.timeline.extra` | Using where; **Using filesort** | Using where; **Backward index scan** |
+| 관찰 온도(데이터 있는 14일 창) | — | `idx_memo_child_created` · 아이별 **67행** |
+| `api.timeline.p50` | 5.5ms | 5.3ms |
+
+**응답시간은 거의 안 움직였다.** 이 규모(아이당 ~170건)에서 173행을 정렬하는 비용은 마이크로초 단위다. 이번 개선은 latency 가 아니라 **정렬 단계 자체를 없앤 것**이고, 효과는 아이별 메모가 쌓일수록 커진다. 숫자를 부풀리지 않고 그렇게 기록한다.
+
+### 벤치가 헷갈리게 한 것
+
+관찰 온도·묶음 쿼리의 EXPLAIN 이 after 에서도 `idx_memo_created_at` 을 고르고 `rows=1` 로 나와 처음엔 인덱스가 안 먹는 줄 알았다. 원인은 **벤치의 EXPLAIN 창이 "최근 14일"인데 시드 데이터가 8/8 에서 끝나 그 창에 메모가 0건**이라서다 — 빈 범위에는 `created_at` 쪽이 당연히 더 싸다. 데이터가 있는 7월 창으로 다시 보면 의도대로 복합 인덱스를 탄다. **시드가 오래되면 시간 창 기반 측정은 무의미해진다** — 벤치를 돌리기 전에 `seed.sh --status` 로 시각 범위를 확인할 것.
+
+### 검증
+
+- 테스트 219개 통과(Testcontainers 의 빈 스키마에서 V1→V11 순차 적용 확인 — `DROP INDEX` 가 FK 아래서 통과함).
+- Cloud Run `ondo-api-00020-vdp`, Cloud SQL 에 V11 적용(0.3초). 타임라인·관찰 온도 200.
+
+---
+
 ## 2026-09-10 · 로그인·비밀번호 확인이 무제한 시도를 받던 문제
 
 **맥락:** `deferred-work.md` 에 **Medium·보안**으로 2026-07-05부터 보류돼 있던 항목. `POST /teachers/me/password` 가 현재 비밀번호의 일치 여부를 무제한으로 알려줘, **유효 토큰을 손에 넣은 공격자에게 비밀번호를 맞혀 보는 오라클**이 됐다. 로그인도 같은 상태였고, 재설정 메일 요청은 제한이 없어 특정 교사의 메일함을 채우거나 Gmail SMTP 할당량을 태울 수 있었다. 보류 사유는 "로그인과 함께 공통 레이트리밋 설계로" — 이번에 그대로 따랐다.
