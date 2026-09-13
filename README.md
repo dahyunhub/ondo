@@ -33,7 +33,7 @@
 - **AI 하루 일지** — 오늘 메모를 모아 누리과정 5영역 일지 초안을 자동 생성 → 검토·수정·확정·재분석.
 - **개인 관찰평가** — 아이별 기록을 모아 상담·발달평가용 평가서를 작성(교사 수동 생성. 월말 자동 스케줄러는 env로 켜는 opt-in).
 - **반·아이 관리** — 담당 반 선택·추가, 아이 등록·수정·숨김/복원, 프로필 사진(브라우저 1:1 크롭).
-- **로그인** — 이메일 회원가입 · **카카오 로그인** · 비밀번호 재설정(이메일 링크) · 로그인 상태 유지.
+- **로그인** — 이메일 회원가입 · **카카오 로그인** · 비밀번호 재설정(이메일 링크) · 로그인 상태 유지. 비밀번호를 바꾸면 다른 기기의 세션은 끊기고, 틀린 시도가 반복되면 잠시 잠깁니다.
 - **어디서나** — 데스크톱·모바일 반응형 + **홈 화면 설치(PWA)**. 교실에선 폰으로 기록하고, 정리는 PC로.
 - **도움말·피드백** — 자주 묻는 질문 페이지(`/help`)와, 화면 어디서든 열리는 **인앱 피드백** 창구(기록 + 메일 알림).
 
@@ -77,7 +77,7 @@
 |------|------|
 | 백엔드 | Java 25 · Spring Boot 4 · Gradle · Spring Data JPA · Flyway |
 | DB | MySQL 8.4 |
-| 인증 | Spring Security(stateless) · JWT · BCrypt · **카카오 OAuth** · 비밀번호 재설정(SMTP 메일) |
+| 인증 | Spring Security(stateless) · JWT · BCrypt · **카카오 OAuth** · 비밀번호 재설정(SMTP 메일) · 비밀번호 변경 시 토큰 무효화 · 시도 제한(브루트포스 가드) |
 | AI | OpenAI Chat Completions · structured outputs(strict) · 기본 모델 `gpt-5.4-nano` |
 | 프론트 | Vue 3(Composition API) · Vue Router · Vite · 반응형(사이드바 ↔ 하단탭) · PWA(홈 화면 설치) |
 | 인프라 | Docker · docker-compose · nginx(정적 서빙·gzip) |
@@ -166,6 +166,7 @@ cp .env.example .env     # 시크릿 채우기 (.env 는 커밋 금지)
 | **지표** | 리텐션·활성화 | 새 로그 인프라 없이 **기존 스키마에 SQL만** — [`analytics/retention.sql`](analytics/retention.sql) (데모 계정 제외, KST 기준) |
 | **설치** | PWA | `manifest.webmanifest` + 아이콘 — 교사가 폰 홈 화면에 바로 얹어 쓸 수 있게 |
 | **첫인상** | 소개 페이지 | 로그아웃 상태로 루트에 들어오면 로그인 벽 대신 `/intro` 로 |
+| **계정 보호** | 토큰 무효화 · 시도 제한 | 비밀번호를 바꾸면 그 전에 발급된 JWT 는 전부 거절(현재 기기는 새 토큰으로 유지). 로그인·비밀번호 확인·재설정 메일에 시도 제한 — 카운터는 DB 에 둬서 Cloud Run 인스턴스가 늘거나 잠들어도 유지. 미가입 이메일도 똑같이 세서 429 가 계정 존재 신호가 되지 않게 |
 | **성능** | 벤치 하네스 | 개선을 숫자로 남기기 위한 시드 + 측정 도구 — [`bench/`](bench/) (결과는 아래 절에) |
 
 ## 🔧 만난 문제와 고친 방법
@@ -181,10 +182,12 @@ dev 시드는 메모 8건이라 어떤 개선도 "0ms → 0ms"로 측정됩니�
 | **아바타 재검증이 304를 주면서도 사진을 읽음** | 재검증 DB 읽기/요청 | 325.0KB → **1.5KB** (−99.5%) |
 | **정적 자산·API 응답 무압축** | 초기 로딩 전송량 | 282.9KB → **79.6KB** (−71.9%) |
 | | 일지 목록 응답 | 57.7KB → **2.4KB** (−95.8%) |
+| **타임라인이 매번 정렬을 다시 함** | 실행 계획 | `Using filesort` → **`Backward index scan`** |
 
 - **아이 명단** — 아바타 갱신시각만 필요한 자리에서 리포지토리가 엔티티를 반환해 `@Lob` LONGBLOB까지 함께 읽고 있었습니다. 기본 속성이라 지연 로딩이 걸리지 않습니다. 응답 0.6KB를 만들자고 MySQL에서 5.4MB를 끌어온 셈이라, 갱신시각 전용 projection으로 select 절을 두 컬럼에 고정했습니다.
 - **ETag 재검증** — 엔티티를 먼저 통째로 읽은 뒤 그 ETag로 304를 만들던 구조였습니다. 본문은 안 보내면서 DB는 매번 사진을 읽었죠. 갱신시각만 먼저 읽고 `checkNotModified`로 끊은 뒤, 실제로 바뀐 경우에만 바이트를 가져옵니다. 대신 캐시 미스 경로는 조회가 1건 늘어납니다(p50 +0.9ms) — 재검증이 훨씬 잦으므로 남는 거래입니다.
 - **압축** — nginx gzip 활성화. 사진 응답(JPEG)만 변화 없는 것이 정상 동작의 증거입니다.
+- **복합 인덱스** — 메모를 읽는 쿼리는 전부 `child_id`로 거른 뒤 `created_at`으로 정렬하거나 범위를 잡는데, 인덱스가 각각 단일뿐이라 타임라인은 행을 모은 뒤 다시 정렬했습니다. `(child_id, created_at)` 하나로 두 패턴을 덮고 접두가 겹치는 단일 인덱스는 제거했습니다. 이 규모(아이당 ~170건)에선 응답시간 변화가 미미해서 "빨라졌다"가 아니라 **"메모가 쌓여도 정렬 비용이 안 늘어난다"**가 정확한 표현입니다.
 
 > 앞의 두 건은 **읽은 행 수와 응답 크기는 그대로인데 전송 바이트만 사라졌습니다.** 쿼리 결과를 바꾼 게 아니라 불필요하게 딸려오던 사진 원본만 없앴다는 직접 증거입니다. (측정 시점이 달라 데이터셋 스냅샷이 조금씩 다릅니다 — 비교는 항상 같은 스냅샷 안에서만 했습니다.)
 
@@ -234,7 +237,7 @@ dev 시드는 메모 8건이라 어떤 개선도 "0ms → 0ms"로 측정됩니�
 ondo/
 ├── backend/     # Spring Boot + Java REST API
 │   └── src/main/java/com/ondo/
-│       ├── auth/       # 회원가입 · 로그인 · JWT · 비밀번호 재설정 · kakao(OAuth)
+│       ├── auth/       # 회원가입 · 로그인 · JWT · 비밀번호 재설정 · kakao(OAuth) · throttle(시도 제한)
 │       ├── classroom/  # 담당 반 · 새 반 생성
 │       ├── child/      # 아이 등록·수정 · 보존형 삭제(숨김)·복원
 │       ├── memo/       # 메모 기록 · 타임라인 · 누리과정 영역
@@ -278,6 +281,7 @@ erDiagram
         varchar email UK
         varchar password_hash
         varchar name
+        datetime password_changed_at "이전 JWT 무효화 기준"
     }
     classroom {
         bigint id PK
@@ -344,6 +348,13 @@ erDiagram
         varchar page "보낸 화면(라우트명)"
         varchar user_agent
     }
+    auth_attempt {
+        varchar scope PK "LOGIN / PASSWORD_CONFIRM / RESET_REQUEST"
+        varchar attempt_key PK "이메일 또는 teacherId"
+        int fail_count
+        datetime window_start
+        datetime locked_until "NULL = 잠기지 않음"
+    }
 ```
 
 </details>
@@ -359,5 +370,6 @@ erDiagram
 | Epic 4 | 개인 관찰평가 (수동 생성 + 월말 자동 스케줄러 · env로 opt-in) | ✅ 완료 |
 | Epic 5 | 실배포 — Cloud Run · Cloud SQL · Firebase Hosting ([라이브](https://teacherondo.co.kr)) | ✅ 완료 |
 | 운영 준비 | 처리방침·약관·가입 동의 · Sentry · 인앱 피드백 · 리텐션 SQL · PWA · 소개/도움말 페이지 | ✅ 완료 |
+| 계정 보호 | 비밀번호 변경 시 JWT 무효화 · 로그인/비밀번호 확인/재설정 메일 시도 제한 | ✅ 완료 |
 
-전체 **208개 테스트 통과**(JUnit 5 · Testcontainers — 통합테스트 15개 클래스 + 단위테스트 10개). AI 일지·개인평가는 실제 OpenAI(`gpt-5.4-nano`)로 end-to-end 검증됐고, 비밀번호 재설정 메일·카카오 로그인·읽기 전용 데모도 라이브에서 동작 확인됨.
+전체 **219개 테스트 통과**(JUnit 5 · Testcontainers — 통합테스트 16개 클래스 + 단위테스트 10개). AI 일지·개인평가는 실제 OpenAI(`gpt-5.4-nano`)로 end-to-end 검증됐고, 비밀번호 재설정 메일·카카오 로그인·읽기 전용 데모도 라이브에서 동작 확인됨.
