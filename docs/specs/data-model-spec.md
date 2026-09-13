@@ -137,7 +137,7 @@ PRD §3 용어집의 5영역. `memo.curriculum_area`에 저장. **분류 전(자
 | `updated_at` | DATETIME(6) | NOT NULL | |
 | `deleted_at` | DATETIME(6) | NULL | soft delete |
 
-- INDEX `idx_memo_child`(`child_id`), `idx_memo_created_at`(`created_at`).
+- INDEX `idx_memo_child_created`(`child_id`, `created_at`) — 타임라인 정렬·기간 범위 조회를 한 인덱스로(V11, 단일 `idx_memo_child` 는 접두 중복이라 제거). `idx_memo_created_at`(`created_at`).
 - **불변식(앱 레이어 강제):** `content`/`play_activity`/`interaction`/`attitude` 중 최소 1개는 non-blank(FR-1). DB CHECK 대신 Bean Validation + 서비스 재검증으로 강제(에러코드 `MEMO_EMPTY`).
 - `curriculum_area`는 교사가 저장 시 입력하지 않음. Epic 3 일지 분석 패스(FR-2)에서 채워지거나 타임라인에서 수동 수정(FR-7, Story 2.3).
 
@@ -257,7 +257,7 @@ CREATE TABLE memo (
     PRIMARY KEY (id),
     CONSTRAINT fk_memo_child   FOREIGN KEY (child_id)   REFERENCES child (id),
     CONSTRAINT fk_memo_teacher FOREIGN KEY (teacher_id) REFERENCES teacher (id),
-    INDEX idx_memo_child (child_id),
+    INDEX idx_memo_child_created (child_id, created_at),  -- V11 (V1 의 idx_memo_child 대체)
     INDEX idx_memo_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
