@@ -183,7 +183,7 @@ public class ReportService {
         Child child = childRepository.findById(childId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHILD_NOT_FOUND));
         ownedClassroom(child.getClassroomId(), teacherId, ErrorCode.CHILD_NOT_FOUND);
-        return childReportRepository.findByChildIdOrderByCreatedAtAsc(childId).stream()
+        return childReportRepository.findSummariesByChildIdOrderByCreatedAtAsc(childId).stream()
                 .map(r -> new ReportSummaryResponse(r.getId(), r.getReportType().name(),
                         r.getPeriodStart(), r.getPeriodEnd(), r.getReportMonth(), r.getCreatedAt()))
                 .toList();

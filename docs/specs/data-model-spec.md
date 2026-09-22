@@ -137,7 +137,7 @@ PRD §3 용어집의 5영역. `memo.curriculum_area`에 저장. **분류 전(자
 | `updated_at` | DATETIME(6) | NOT NULL | |
 | `deleted_at` | DATETIME(6) | NULL | soft delete |
 
-- INDEX `idx_memo_child_created`(`child_id`, `created_at`) — 타임라인 정렬·기간 범위 조회를 한 인덱스로(V11, 단일 `idx_memo_child` 는 접두 중복이라 제거). `idx_memo_created_at`(`created_at`).
+- INDEX `idx_memo_child_created`(`child_id`, `created_at`) — 타임라인 정렬·기간 범위 조회를 한 인덱스로(V11, 단일 `idx_memo_child` 는 접두 중복이라 제거). `idx_memo_created_at`(`created_at`) 는 **V13 에서 제거** — 메모 쿼리가 전부 `child_id` 로 시작해 타는 쿼리가 없었다(invisible index 로 실행계획 무변화 확인).
 - **불변식(앱 레이어 강제):** `content`/`play_activity`/`interaction`/`attitude` 중 최소 1개는 non-blank(FR-1). DB CHECK 대신 Bean Validation + 서비스 재검증으로 강제(에러코드 `MEMO_EMPTY`).
 - `curriculum_area`는 교사가 저장 시 입력하지 않음. Epic 3 일지 분석 패스(FR-2)에서 채워지거나 타임라인에서 수동 수정(FR-7, Story 2.3).
 
@@ -257,8 +257,8 @@ CREATE TABLE memo (
     PRIMARY KEY (id),
     CONSTRAINT fk_memo_child   FOREIGN KEY (child_id)   REFERENCES child (id),
     CONSTRAINT fk_memo_teacher FOREIGN KEY (teacher_id) REFERENCES teacher (id),
-    INDEX idx_memo_child_created (child_id, created_at),  -- V11 (V1 의 idx_memo_child 대체)
-    INDEX idx_memo_created_at (created_at)
+    INDEX idx_memo_child_created (child_id, created_at)  -- V11 (V1 의 idx_memo_child 대체)
+    -- idx_memo_created_at (created_at) : V1 에 있었으나 V13 에서 제거(타는 쿼리 없음)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE daily_journal (

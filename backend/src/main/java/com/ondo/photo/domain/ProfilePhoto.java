@@ -6,7 +6,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -18,8 +17,12 @@ import java.time.ZoneOffset;
 import java.util.Objects;
 
 /**
- * 프로필 이미지(아이·교사). 테이블 profile_photo 는 Flyway V3 정본. 복합 PK(owner_kind, owner_id).
- * data 는 클라이언트가 1:1 크롭+리사이즈한 작은 이미지 바이트(JPEG/PNG/WebP).
+ * 프로필 이미지의 메타데이터(아이·교사). 테이블 profile_photo 는 Flyway V3 정본, V12 에서 BLOB 분리.
+ * 복합 PK(owner_kind, owner_id).
+ *
+ * 이미지 바이트는 여기에 없다 — {@link ProfilePhotoData} 로 분리돼 있다. 같은 행에 두면 갱신시각
+ * 하나를 읽는 조회에도 이미지가 딸려오고, 실제로 그렇게 터진 적이 있다(V12 주석 참고).
+ * 이 엔티티를 아무리 통째로 읽어도 이미지는 따라오지 않는다.
  */
 @Entity
 @Table(name = "profile_photo")
@@ -40,27 +43,22 @@ public class ProfilePhoto {
     @Column(name = "content_type", nullable = false, length = 50)
     private String contentType;
 
-    @Lob
-    @Column(nullable = false, columnDefinition = "LONGBLOB")
-    private byte[] data;
-
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    private ProfilePhoto(OwnerKind ownerKind, Long ownerId, String contentType, byte[] data) {
+    private ProfilePhoto(OwnerKind ownerKind, Long ownerId, String contentType) {
         this.ownerKind = ownerKind;
         this.ownerId = ownerId;
-        replace(contentType, data);
+        replace(contentType);
     }
 
-    public static ProfilePhoto of(OwnerKind ownerKind, Long ownerId, String contentType, byte[] data) {
-        return new ProfilePhoto(ownerKind, ownerId, contentType, data);
+    public static ProfilePhoto of(OwnerKind ownerKind, Long ownerId, String contentType) {
+        return new ProfilePhoto(ownerKind, ownerId, contentType);
     }
 
-    /** 같은 소유자의 사진 교체(업서트 시 기존 행 갱신). */
-    public void replace(String contentType, byte[] data) {
+    /** 같은 소유자의 사진 교체(업서트 시 기존 행 갱신). 갱신시각은 ETag·캐시 키로 쓰인다. */
+    public void replace(String contentType) {
         this.contentType = contentType;
-        this.data = data;
         this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 

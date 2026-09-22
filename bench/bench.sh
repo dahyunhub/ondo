@@ -64,7 +64,7 @@ $(mysql_scalar "
   SELECT (SELECT COUNT(*) FROM memo WHERE deleted_at IS NULL),
          (SELECT COUNT(*) FROM child WHERE classroom_id=$CID AND deleted_at IS NULL),
          (SELECT COUNT(*) FROM profile_photo),
-         (SELECT ROUND(COALESCE(SUM(LENGTH(data)),0)/1024/1024,1) FROM profile_photo),
+         (SELECT ROUND(COALESCE(SUM(LENGTH(data)),0)/1024/1024,1) FROM profile_photo_data),
          (SELECT COUNT(*) FROM daily_journal),
          (SELECT COUNT(*) FROM child_report)")
 EOF

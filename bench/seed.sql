@@ -6,7 +6,7 @@
 --
 --  넣는 것 (1학기치 ≈ 반 하나가 3월 개학 후 오늘까지 쌓았을 분량):
 --    - memo          약 3,000건  (아이 23명 × 35~175건, 최근일수록 촘촘)
---    - profile_photo 20건 × ≈300KB (LONGBLOB 과다 조회 측정용)
+--    - profile_photo(+profile_photo_data) 20건 × ≈300KB (LONGBLOB 조회량 측정용)
 --    - daily_journal 평일 1건씩  (무제한 목록 + content 파싱 비용 측정용)
 --    - child_report  아이당 월별 (무제한 목록 + MEDIUMTEXT 과다 조회 측정용)
 --
@@ -115,7 +115,10 @@ FROM kids k
               ON s.n <= CASE WHEN k.rn <= 3 THEN 35 ELSE 130 + (k.rn * 7) % 45 END;
 
 -- ---------------------------------------------------------------------------
--- 2) profile_photo — 아이 20명 × 250~340KB
+-- 2) profile_photo / profile_photo_data — 아이 20명 × 250~340KB
+--
+--  V12 부터 메타데이터와 바이트가 다른 테이블이다. FK(ON DELETE CASCADE) 때문에 메타데이터를
+--  먼저 넣어야 한다.
 --
 --  프론트가 1:1 크롭+리사이즈해 올리는 썸네일의 현실적 크기대(서버 상한은 2MB).
 --  UNHEX(REPEAT('AB', N)) → 정확히 N 바이트. 아이마다 조금씩 다르게 해 합계가 딱 떨어지지 않게 한다.
@@ -129,10 +132,14 @@ WHERE c.rn <= 20
   AND NOT EXISTS (SELECT 1 FROM profile_photo p
                   WHERE p.owner_kind = 'CHILD' AND p.owner_id = c.id);
 
-INSERT IGNORE INTO profile_photo (owner_kind, owner_id, content_type, data, updated_at)
-SELECT 'CHILD', o.owner_id, 'image/jpeg',
-       UNHEX(REPEAT('AB', 250000 + (o.owner_id % 10) * 9000)),
-       @now
+INSERT IGNORE INTO profile_photo (owner_kind, owner_id, content_type, updated_at)
+SELECT 'CHILD', o.owner_id, 'image/jpeg', @now
+FROM bench_photo_owner o
+WHERE o.owner_kind = 'CHILD';
+
+INSERT IGNORE INTO profile_photo_data (owner_kind, owner_id, data)
+SELECT 'CHILD', o.owner_id,
+       UNHEX(REPEAT('AB', 250000 + (o.owner_id % 10) * 9000))
 FROM bench_photo_owner o
 WHERE o.owner_kind = 'CHILD';
 
@@ -141,8 +148,13 @@ INSERT IGNORE INTO bench_photo_owner (owner_kind, owner_id)
 SELECT 'TEACHER', @tid
 WHERE NOT EXISTS (SELECT 1 FROM profile_photo WHERE owner_kind = 'TEACHER' AND owner_id = @tid);
 
-INSERT IGNORE INTO profile_photo (owner_kind, owner_id, content_type, data, updated_at)
-SELECT 'TEACHER', o.owner_id, 'image/jpeg', UNHEX(REPEAT('CD', 180000)), @now
+INSERT IGNORE INTO profile_photo (owner_kind, owner_id, content_type, updated_at)
+SELECT 'TEACHER', o.owner_id, 'image/jpeg', @now
+FROM bench_photo_owner o
+WHERE o.owner_kind = 'TEACHER';
+
+INSERT IGNORE INTO profile_photo_data (owner_kind, owner_id, data)
+SELECT 'TEACHER', o.owner_id, UNHEX(REPEAT('CD', 180000))
 FROM bench_photo_owner o
 WHERE o.owner_kind = 'TEACHER';
 
@@ -211,6 +223,6 @@ SELECT
                                  AND deleted_at IS NULL)                   AS child,
     (SELECT COUNT(*) FROM profile_photo)                                   AS photo,
     (SELECT ROUND(COALESCE(SUM(LENGTH(data)), 0) / 1024 / 1024, 1)
-     FROM profile_photo)                                                   AS photo_mb,
+     FROM profile_photo_data)                                              AS photo_mb,
     (SELECT COUNT(*) FROM daily_journal)                                   AS journal,
     (SELECT COUNT(*) FROM child_report)                                    AS report;

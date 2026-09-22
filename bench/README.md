@@ -41,7 +41,7 @@ bench/compare.sh before after        # 비교표(마크다운) 출력
 | | 양 | 왜 |
 |---|---|---|
 | `memo` | ≈3,100건 | 아이 23명 × 35~175건. **일부러 불균등** — 3명은 35건만 넣어 관찰 온도가 LOW 를 실제로 판정하게 만든다. 40건에 1건은 soft delete |
-| `profile_photo` | 21건 / 5.7MB | 아이당 250~340KB. LONGBLOB 과다 조회를 드러내는 핵심 데이터 |
+| `profile_photo` + `profile_photo_data` | 21건 / 5.7MB | 아이당 250~340KB. 사진 조회량(`db_kb_per_req`)을 드러내는 핵심 데이터 |
 | `daily_journal` | 평일마다 1건 | content 는 앱과 같은 평탄화 JSON(≈3KB). 목록 API 가 이걸 전부 읽고 파싱한다 |
 | `child_report` | 아이 × 월 | MEDIUMTEXT 과다 조회 측정용 |
 

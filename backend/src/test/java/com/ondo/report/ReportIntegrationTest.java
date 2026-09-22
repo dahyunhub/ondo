@@ -13,6 +13,7 @@ import com.ondo.classroom.domain.Classroom;
 import com.ondo.memo.MemoRepository;
 import com.ondo.memo.domain.Memo;
 import com.ondo.report.domain.ChildReport;
+import java.util.List;
 import com.ondo.support.IntegrationTestSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -165,7 +166,7 @@ class ReportIntegrationTest extends IntegrationTestSupport {
         stubAiClient.enqueue(() -> HAPPY_JSON);
         createReport(tokenA, childA1Id).andExpect(status().isCreated());
 
-        assertThat(childReportRepository.findByChildIdOrderByCreatedAtAsc(childA1Id)).hasSize(2);
+        assertThat(childReportRepository.findSummariesByChildIdOrderByCreatedAtAsc(childA1Id)).hasSize(2);
     }
 
     @Test
@@ -180,7 +181,7 @@ class ReportIntegrationTest extends IntegrationTestSupport {
     void 목록과_단건을_조회한다() throws Exception {
         stubAiClient.enqueue(() -> HAPPY_JSON);
         String location = createReport(tokenA, childA1Id).andReturn().getResponse().getContentAsString();
-        Long reportId = childReportRepository.findByChildIdOrderByCreatedAtAsc(childA1Id).get(0).getId();
+        Long reportId = childReportRepository.findSummariesByChildIdOrderByCreatedAtAsc(childA1Id).get(0).getId();
 
         // [17] 목록: content 생략
         mockMvc.perform(get("/api/v1/children/" + childA1Id + "/reports").header("Authorization", "Bearer " + tokenA))
@@ -194,6 +195,29 @@ class ReportIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.summary").isNotEmpty());
         assertThat(location).contains("MANUAL");
+    }
+
+    /**
+     * 목록 조회가 엔티티를 반환하면 MEDIUMTEXT content 까지 읽고 그대로 버린다(아이당 ≈13KB).
+     * 응답에는 content 가 없으니 기능 테스트로는 드러나지 않는다 — 사진(LONGBLOB)에서 똑같이
+     * 당했고, 그때도 "BLOB 은 안 읽는다"는 주석만 있고 구현은 반대였다.
+     *
+     * 사진은 테이블을 나눠 구조로 막았지만 content 는 단건 조회에서 쓰이므로 여기서는 select 절을
+     * 좁히는 수밖에 없다. 그래서 규율이 깨지는 순간 — 반환 타입이 엔티티로 되돌아가는 순간 — 을
+     * 여기서 잡는다.
+     */
+    @Test
+    void 평가_목록_조회는_엔티티를_반환하지_않는다() throws Exception {
+        stubAiClient.enqueue(() -> HAPPY_JSON);
+        createReport(tokenA, childA1Id).andExpect(status().isCreated());
+
+        List<ChildReportRepository.ReportSummary> summaries =
+                childReportRepository.findSummariesByChildIdOrderByCreatedAtAsc(childA1Id);
+
+        assertThat(summaries).hasSize(1);
+        assertThat(summaries.get(0))
+                .as("목록은 projection 이어야 한다 — 엔티티면 content(MEDIUMTEXT)가 딸려온다")
+                .isNotInstanceOf(ChildReport.class);
     }
 
     @TestConfiguration

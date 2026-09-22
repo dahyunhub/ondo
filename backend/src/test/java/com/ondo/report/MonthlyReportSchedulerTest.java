@@ -90,9 +90,10 @@ class MonthlyReportSchedulerTest extends IntegrationTestSupport {
 
         assertThat(reportService.createMonthly(childId, TARGET)).isEqualTo(MonthlyOutcome.CREATED);
 
-        List<ChildReport> reports = childReportRepository.findByChildIdOrderByCreatedAtAsc(childId);
+        List<ChildReportRepository.ReportSummary> reports =
+                childReportRepository.findSummariesByChildIdOrderByCreatedAtAsc(childId);
         assertThat(reports).hasSize(1);
-        ChildReport r = reports.get(0);
+        ChildReportRepository.ReportSummary r = reports.get(0);
         assertThat(r.getReportType()).isEqualTo(ReportType.MONTHLY);
         assertThat(r.getReportMonth()).isEqualTo("2000-01");
         assertThat(r.getPeriodStart()).isEqualTo(LocalDate.of(2000, 1, 1));
@@ -105,7 +106,7 @@ class MonthlyReportSchedulerTest extends IntegrationTestSupport {
                 Child.create(classroomId, "박서윤", LocalDate.of(2021, 2, 1), Gender.FEMALE, "nomemo" + System.nanoTime())).getId();
 
         assertThat(reportService.createMonthly(childId, TARGET)).isEqualTo(MonthlyOutcome.SKIPPED_NO_MEMO);
-        assertThat(childReportRepository.findByChildIdOrderByCreatedAtAsc(childId)).isEmpty();
+        assertThat(childReportRepository.findSummariesByChildIdOrderByCreatedAtAsc(childId)).isEmpty();
     }
 
     @Test
@@ -116,7 +117,7 @@ class MonthlyReportSchedulerTest extends IntegrationTestSupport {
 
         // 메모가 있어도 이미 그달 평가가 있으므로 AI 호출 없이 skip(멱등). stub 미소비.
         assertThat(reportService.createMonthly(childId, TARGET)).isEqualTo(MonthlyOutcome.SKIPPED_EXISTS);
-        assertThat(childReportRepository.findByChildIdOrderByCreatedAtAsc(childId)).hasSize(1);
+        assertThat(childReportRepository.findSummariesByChildIdOrderByCreatedAtAsc(childId)).hasSize(1);
     }
 
     @Test

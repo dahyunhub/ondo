@@ -24,6 +24,7 @@ DELETE FROM daily_journal WHERE @wm_journal >= 0 AND id > @wm_journal;
 DELETE FROM memo          WHERE @wm_memo    >= 0 AND id > @wm_memo;
 
 -- 사진: seed 가 직접 넣은 소유자만(원래 사진이 있던 소유자는 bench_photo_owner 에 없다).
+-- profile_photo_data 는 FK ON DELETE CASCADE(V12) 로 함께 지워진다.
 DELETE p FROM profile_photo p
     JOIN bench_photo_owner o
          ON o.owner_kind = p.owner_kind AND o.owner_id = p.owner_id;
