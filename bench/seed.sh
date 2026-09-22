@@ -20,7 +20,7 @@ case "${1:-}" in
       SELECT (SELECT COUNT(*) FROM memo) memo,
              (SELECT COUNT(*) FROM child WHERE deleted_at IS NULL) child,
              (SELECT COUNT(*) FROM profile_photo) photo,
-             (SELECT ROUND(COALESCE(SUM(LENGTH(data)),0)/1024/1024,1) FROM profile_photo) photo_mb,
+             (SELECT ROUND(COALESCE(SUM(LENGTH(data)),0)/1024/1024,1) FROM profile_photo_data) photo_mb,
              (SELECT COUNT(*) FROM daily_journal) journal,
              (SELECT COUNT(*) FROM child_report) report;"
     ;;

@@ -117,10 +117,10 @@ public class PhotoController {
         // 두 조회 사이에 사진이 지워졌을 수 있으므로 없으면 404.
         return photoService.find(ownerKind, ownerId)
                 .map(p -> ResponseEntity.ok()
-                        .contentType(MediaType.parseMediaType(p.getContentType()))
+                        .contentType(MediaType.parseMediaType(p.contentType()))
                         .cacheControl(CACHE)
                         .eTag(etag)
-                        .body(p.getData()))
+                        .body(p.data()))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }
